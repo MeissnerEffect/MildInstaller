@@ -111,8 +111,8 @@ RUN \
   for a in $mesa_rollback; do git revert $a --no-edit ; done 
 
 # Setup toolchain options
-ENV compiler_flags ${compiler_flags:-'"-O2 -march=native"'} \
-    linker_flags ${linker_flags:-'"-Wl,-O2 -Wl,--sort-common -Wl,-z,now"'}
+ENV compiler_flags=${compiler_flags:-'"-O2 -march=native"'} \
+    linker_flags=${linker_flags:-'"-Wl,-O2 -Wl,--sort-common -Wl,-z,now"'}
 
 # Autoconf feeding
 ENV gallium_drivers=${gallium_drivers:-'i915,r300,r600,radeonsi,nouveau,svga,swrast,virgl'} \
