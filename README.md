@@ -28,15 +28,30 @@
 <li>  If you want to manages files in your container you can start any program like this : (files from your home will be available)</li>
 <code>
 
-#To run winefile (you can also run wineconsole that way)
+#To run winefile when container is stopped (you can also run wineconsole that way too) 
 
 ./04-run_cemu.sh --entrypoint winefile
 
-#To run a shell
+#To run a shelli when container is stopped
 
 ./04-run_cemu.sh -it --entrypoint bash
 
+# To run winfile when container is running
+
+docker exec kazhed-cemu winefile
+
+# To run bash when container is running
+
+docker exec -it kazhed-cemu  bash
+
+# To save modifications in the image (a.k.a. commit changes)
+
+docker commit kazhed-cemu kazhed/emulator_cemu
+
+
 </code>
+
+
 
 <li>  Depending if you followed the previous step do </li>
 <emphase> for Cemu do not forget to include the file keys.txt in /cemu/latest/ folder of the container (check above) </emphase>
