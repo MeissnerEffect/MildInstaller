@@ -60,6 +60,3 @@ docker run \
   -v cemu:/cemu:rw \
 	$args --privileged  kazhed/emulator_cemu 
 
-#cid=$(docker ps -lq)
-#docker commit $cid kazhed/emulator_cemu
-

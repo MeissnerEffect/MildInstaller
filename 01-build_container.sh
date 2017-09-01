@@ -19,8 +19,8 @@ $0 --build-arg \"setting=value\" ... --build-arg \"setting=value\"
 *You need to escape quotes where you need them, like in compiler_flags and linker_flags*
 
 Setting          Default Value 
- compiler_flags   \"-O3 -march=native -pipe\"
- linker_flags     \"-Wl,-O3 -Wl,--sort-common -Wl,-z,now\"
+ compiler_flags   \"-O2 -march=native -pipe\"
+ linker_flags     \"-Wl,-O2 -Wl,--sort-common -Wl,-z,now\"
  gallium_drivers  i915,r300,r600,radeonsi,nouveau,svga,swrast,virgl
  dri_drivers      i915,i965,r200,radeon,nouveau,swrast
  vulkan_drivers   intel,radeon

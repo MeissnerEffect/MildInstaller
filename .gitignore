@@ -3,3 +3,4 @@ AddToRoot/etc/pacman.conf
 Packages/*xz
 AddToRoot/usr/src/mesamild
 CHANGELOG.md
+SetupCemu.sh
