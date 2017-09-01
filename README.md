@@ -36,15 +36,15 @@
 
 ./04-run_cemu.sh -it --entrypoint bash
 
-# To run winfile when container is running
+#To run winfile when container is running
 
 docker exec kazhed-cemu winefile
 
-# To run bash when container is running
+#To run bash when container is running
 
 docker exec -it kazhed-cemu  bash
 
-# To save modifications in the image (a.k.a. commit changes)
+#To save modifications in the IMAGE (a.k.a. commit changes)
 
 docker commit kazhed-cemu kazhed/emulator_cemu
 
