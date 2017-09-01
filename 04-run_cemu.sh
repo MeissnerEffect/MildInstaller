@@ -52,8 +52,6 @@ function ImageExists {
 
 function RunOrRestart {
   PrepareSocket
-  Running=$(docker ps|grep -q $CNAME)
-  Ran=$(docker ps -a|grep -q $CNAME)
   docker ps |grep -q $CNAME && ( echo "Container $CNAME is already running !" ; exit -2)
   docker ps -a |grep -q $CNAME && ( Restart ; exit 0) || (Run ; exit 0)
   exit 255
@@ -74,7 +72,7 @@ function Run {
   PARAMS=$(setup_Params)
 
   docker run \
-	  $PARAMS \
+    $PARAMS \
     -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
     -e DISPLAY=$DISPLAY \
     -e XAUTHORITY=$XAUTH \
