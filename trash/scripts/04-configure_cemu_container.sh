@@ -1,6 +1,7 @@
 #!/bin/bash
 # Name of the container and of the host
 CNAME=kazhed-cemu
+CIDFILE=${CNAME}.cid
 HNAME=cemu-container
 
 # Which directories have to be available inside container 
@@ -41,53 +42,71 @@ function setup_Params {
   done
 
   echo $PARAMS
-
 }
+
 
 function ImageExists {
   docker images kazhed/emulator_cemu:latest |grep -q latest
 }
 
-
-
-function RunOrRestart {
-  PrepareSocket
-  docker ps |grep -q $CNAME && ( echo "Container $CNAME is already running !" ; exit -2)
-  docker ps -a |grep -q $CNAME && ( Restart ; exit 0) || (Run ; exit 0)
-  exit 255
+function ContainerIsUp {
+  docker ps | grep -q "kazhed/emulator_cemu"
 }
 
 function PrepareSocket {
-
   if [ ! -f $XAUTH ]; then
+    echo "Creating socket"
     touch $XAUTH
     DISPLAY=:0.0
     xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
   fi
-
 }
 
 function Run {
-  args="$@"
+  echo "Starting container"
   PARAMS=$(setup_Params)
-
-  docker run \
-    $PARAMS \
+  docker run                            \
+    $PARAMS                             \
     -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
-    -e DISPLAY=$DISPLAY \
-    -e XAUTHORITY=$XAUTH \
-    -v cemu:/cemu:rw \
-    --name  $CNAME   \
-    -h $HNAME \
-    $args  \
-    --privileged  kazhed/emulator_cemu 
+    -e DISPLAY=$DISPLAY                 \
+    -e XAUTHORITY=$XAUTH                \
+    -v cemu:/cemu:rw                    \
+    --name $CNAME                       \
+    -h $HNAME                           \
+    $ARGS                               \
+    -d --privileged  kazhed/emulator_cemu 
 }
 
 function Restart  {
-  docker restart $CNAME
+  CONTAINERNAME=$(cat $CIDFILE) 
+  echo "Restarting $CONTAINERNAME"
+  docker restart $CONTAINERNAME
 }
 
+function Stop {
+  CONTAINERNAME=$(docker ps --filter ancestor=kazhed/emulator_cemu:latest --format {{.ID}})
+#  echo "Stopping Container $CONTAINERNAME"
+#  docker stop $CONTAINERNAME
+#  docker wait $CONTAINERNAME
+}
 
-[ $(ImageExists) ] && ( echo "Image doesn't exist, build it first !" ; exit -1 )
+ARGS="$@"
 
-RunOrRestart
+echo -n "Checking if image exists: "
+[ $(ImageExists) ]&&(echo "Image doesn't exist, build it first !";exit -1) || echo "OK"
+echo -n "Checking if the container is not already running: "
+[ $(ContainerIsUp) ]&&echo "OK"||( echo "Container is already running, stopping it"; Stop )
+PrepareSocket
+docker container list --all|grep -q kazhed-cemu && docker rm kazhed-cemu
+
+
+Run; 
+sleep 10
+docker exec -it  $CNAME  bash
+docker exec -it  $CNAME  winecfg
+docker exec -it  $CNAME  winefile
+docker exec -it  $CNAME  driconf
+
+docker wait  $CNAME
+
+docker commit $CNAME kazhed/emulator_cemu 

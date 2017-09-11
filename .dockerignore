@@ -1,6 +1,7 @@
 Dockerfiles/*
-Helpers/*sh
+scripts/*sh
 README.md
 INSTRUCTIONS.md
 *.sh
 .git/*
+trash/*
