@@ -10,15 +10,17 @@ WINEPREFIX="$HOME/.cemu_prefix"
 
 APPDIR=$WINEPREFIX/drive_c/cemu
 EXEC=$APPDIR/latest/Cemu.exe
-cemu_version="cemu_${cemu}"
+cemu_version="cemu_${INSTALL_CEMU}"
+
 
 function setup() {
   WINEARCH=$WINEARCH WINEPREFIX=$WINEPREFIX wineboot -u
   echo curl http://cemu.info/releases/${cemu_version}.zip  
-  curl http://cemu.info/releases/${cemu_version}.zip > cemu.zip; 
+  curl http://cemu.info/releases/${cemu_version}.zip > $HOME/cemu.zip; 
   mkdir -p $APPDIR
-  unzip -qq cemu.zip -d $APPDIR  
-  rm cemu.zip
+  unzip -qq $HOME/cemu.zip -d $APPDIR  
+  rm $HOME/cemu.zip
+  [ -L $APPDIR/latest ] && unlink $APPDIR/latest
   CE=$(ls -ltr $APPDIR | tail -1 | awk '{ print $NF}')
   ln -s $APPDIR/$CE $APPDIR/latest
   sed -e "s/#version 420/#version 450/" -i $EXEC ;

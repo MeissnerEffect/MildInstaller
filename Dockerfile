@@ -1,4 +1,4 @@
-FROM antergos/makepkg AS mesamild
+FROM antergos/makepkg 
 # Usage 
 # This should be lanched using Setup.sh
 ARG MY_USERNAME
@@ -8,7 +8,6 @@ ARG vulkan_drivers
 ARG mesa_repository
 ARG mesa_branch
 ARG mesa_rollback 
-ARG cemu=1.9.1
 ENV MY_USERNAME=${MY_USERNAME} \
     mesa_repository=${mesa_repository:-'https://github.com/mikakev1/mesa_mild_compatibility.git'} \
     mesa_branch=${mesa_branch:-master} \
@@ -20,12 +19,12 @@ ENV MY_USERNAME=${MY_USERNAME} \
     
 
 # Add files from host to container 
-COPY preload/*  /
+ADD preload/* /
 
 # Setup Account and allow to "sudo" 
 RUN \
   bash /create_user.sh; \
-  echo "$MY_USERNAME ALL=(ALL) NOPASSWD: ALL" | tee -a /etc/sudoers; \
+  echo "$MY_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers; \
   [ -d /usr/src/mesamild ] || mkdir /usr/src/mesamild; \
   chown ${MY_USERNAME}:users /usr/src/mesamild; \
   nupper=$(cat /etc/pacman.conf | grep -Ein '(^\[)' | tr ":" " " | head -2 | tail -1 | awk '{ print ($1-1)}'); \
@@ -107,8 +106,7 @@ RUN \
   sudo find /usr/src/mesamild/lib32-mesa-git /usr/src/mesamild/mesa-git  -name "*.pkg.tar.xz" -exec cp {} /var/cache/pacman/pkg \; ; \
   sudo rm /create_user.sh; \
   sudo rm -rf /usr/src/mesamild; \
-  sudo pacman -Scc --noconfirm;  \
-  sudo chmod +x /install.sh
+  sudo chmod +x /*.sh
 
-CMD /install.sh 
+CMD cd ; bash  
 

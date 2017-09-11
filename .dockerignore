@@ -1,8 +1,7 @@
-Dockerfiles/*
-scripts/*sh
 README.md
 INSTRUCTIONS.md
-*.sh
+Setup.sh
 .git/*
 trash/*
 overrides/*
+debug.sh
