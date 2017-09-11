@@ -15,7 +15,7 @@ JOYSTICK="/dev/input/js0"
 VIDEOCARD="/dev/dri/card0"
 DEVICE_DRIVERS=( $VIDEOCARD $JOYSTICK )
 
-# Select which socket will be available inside the container
+# Select which socket to replicate inside the container
 SHAREDMEMORY="/dev/shm"
 DBUS="/var/lib/dbus"
 DBUS_SOCKET="/run/dbus/system_bus_socket"
@@ -27,110 +27,74 @@ MACHINE_ID="/etc/machine-id"
 
 VISIBLE_SOCKETS=( $PULSE $DBUS_SESSION_BUS_ADDRESS $DBUS_SOCKET $DBUS $SHAREDMEMORY $XSOCK $XAUTH $MACHINE_ID)
 
-# Various parameters 
+# Comment faisait on avant les dictionnaires en bash? En perl, pardi!
+# AFAIRE : Mettre les constantes en LS
+
 declare -A COMPILER_SETUP=(
-["--optimise"]="Use safe compiler optimisation"
-["--optimise-harder"]="Use unsafe compiler optimisation"
-["--use-lto"]="Use link time optimisation (largely increase building time)"
-["--clang"]="Build using CLANG"
+    ["--optimise"]="Use safe compiler optimisation"
+    ["--optimise-harder"]="Use unsafe compiler optimisation"
+    ["--use-lto"]="Use link time optimisation (largely increase building time)"
+    ["--clang"]="Build using CLANG"
 )
 
 declare -A MESA_SETUP=(
-["--vulkan"]="Enable vulkan (intel or radeon)"
-["--radeon"]="Enable radeon support"
-["--radeon-legacy"]="Enable legacy radeon support (PRE GCN)"
-["--nouveau"]="Enable nouveau support"
-["--intel"]="Enable intel support"
-["--intel-legacy"]="Enable legacy intel support"
+    ["--vulkan"]="Enable vulkan (intel or radeon)"
+    ["--radeon"]="Enable radeon support"
+    ["--radeon-legacy"]="Enable legacy radeon support (PRE GCN)"
+    ["--nouveau"]="Enable nouveau support"
+    ["--intel"]="Enable intel support"
+    ["--intel-legacy"]="Enable legacy intel support"
 )
 
 declare -A ANTERGOS_SETUP=(
-["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
-["--mesa-stable"]="Use stable version of mesa"
-["--wine-staging"]="Install wine staging instead of wine"
-["--wine-staging-nine"]="Install wine-staging-nine instead of wine"
-["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
+    #["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
+    #["--mesa-stable"]="Use stable version of mesa"
+    ["--wine-staging"]="Install wine staging instead of wine"
+    ["--wine-staging-nine"]="Install wine-staging-nine instead of wine"
+    #["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
 )
 
 declare -A IMAGE_SETUP=(
-["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
-["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
-["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
-["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
-["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
-["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
+    ["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
+    #["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
+    #["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
+    #["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
+    #["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
+    #["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
 )
 
 declare -A CONTAINER_SETUP=(
-["--add-dir=X"]="Add the X directory in the container"
-["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
+    ["--add-dir=X"]="Add the X directory in the container"
+    ["--add-device=X"]="Add the char device X in the container"
+    #["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
+    #["--max-ram=X"]="Hard memory limit"
+    #["--max-swap=X,Y"]="Use max swap and define swapiness"
 )
 
-# Vivification
-function setup_Params {
-
-# Setup bindings (things to be passed to the container)
-  BINDINGS=""
-  for directory in ${VISIBLE_DIRECTORIES[*]};
-  do
-    BINDINGS+=" --volume=${directory}:${directory}:rw";
-  done
-
-  for device in ${DEVICE_DRIVERS[*]};
-  do
-    BINDINGS+=" --device=${device}:${device}:rw";
-  done
-
-  for socket in ${VISIBLE_SOCKETS[*]};
-  do
-    BINDINGS+=" --volume=${socket}:${socket}:rw";
-  done
-
-  echo $BINDINGS
-}
-
-
-function ImageExists {
-  docker images $INAME |grep -q latest
-}
-
-function ContainerIsUp {
-  docker ps | grep -q $INAME
-}
-
-function PrepareSocket {
-
+# Display 
+function socket_setup {
 # Setup X11 display
-  if [ ! -f $XAUTH ]; then
+
     echo "Creating X11 socket"
     touch $XAUTH
     DISPLAY=:0.0
     xauth nlist $DISPLAY | sed -e 's/^..../ffff/' | xauth -f $XAUTH nmerge -
-  fi
 }
 
-function Create {
-
-# Create a container
-echo "Creating/Configuring container"
-  PARAMS=$(setup_Params)
-  docker create                            \
-    -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR \
-    -e DISPLAY=$DISPLAY                 \
-    -e XAUTHORITY=$XAUTH                \
-    --name $CNAME                       \
-    -h $HNAME                           \
-    $ARGS                               \
-    --privileged  $INAME
-}
-
-function Stop {
-  CONTAINERNAME=$(docker ps --filter ancestor=$INAME --format {{.ID}})
+function account_generate {
+  OUTFILE=preload/create_user.sh
+  CUSERNAME=$(id -un)
+  CUID=$(id -u)
+  CPGID=$(id -g)
+  CPGIDNAME=$(cat /etc/group | grep "${CPGID}:")
+  cat /etc/group |grep $CUSERNAME|tr ':' ' '|awk '{printf("groupadd -og %d g%d\n",$3,$3)}' > $OUTFILE
+  CUSERGROUP=$(cat /etc/group | grep $CUSERNAME  | tr ":" " " | awk '{ print $3}' | tr '\n' ',' | sed s/.$//)
+  echo "mkdir -p $(dirname $HOME)" >> $OUTFILE 
+  echo "useradd -o -b / -d $HOME -m -G ${CUSERGROUP} -U -u $CUID $CUSERNAME" >> $OUTFILE
 }
 
 
-function show_help_item {
-  
+function usage_generatetext {
   keys=""
 
   local -n ITEM=$1
@@ -147,32 +111,126 @@ function show_help_item {
   
 }
 
-function create_user {
-  OUTFILE=preload/create_user.sh
-  CUSERNAME=$(id -un)
-  CUID=$(id -u)
-  CPGID=$(id -g)
-  CPGIDNAME=$(cat /etc/group | grep "${CPGID}:")
-  cat /etc/group |grep $CUSERNAME|tr ':' ' '|awk '{printf("groupadd -og %d g%d\n",$3,$3)}' > $OUTFILE
-  CUSERGROUP=$(cat /etc/group | grep $CUSERNAME  | tr ":" " " | awk '{ print $3}' | tr '\n' ',' | sed s/.$//)
-  echo "mkdir -p $(dirname $HOME)" >> $OUTFILE 
-  echo "useradd -o -b / -d $HOME -m -G ${CUSERGROUP} -U -u $CUID $CUSERNAME" >> $OUTFILE
-}
-
-function usage () {
+function usage_show () {
   echo "Usage : $(basename $0)"
   echo "Prepare a new container that includes MesaMild"
   (
-    echo "> COMPILER OPTIONS";  show_help_item COMPILER_SETUP;echo "@";
-    echo "> MESA OPTIONS";      show_help_item MESA_SETUP;echo "@";
-    echo "> OS OPTIONS";        show_help_item ANTERGOS_SETUP;echo "@";
-    echo "> EMULATORS OPTIONS"; show_help_item IMAGE_SETUP; echo "@";
-    echo "> CONTAINER OPTIONS"; show_help_item CONTAINER_SETUP; echo "@"
+    echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;echo "@";
+    echo "> MESA OPTIONS";      usage_generatetext MESA_SETUP;echo "@";
+    echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;echo "@";
+    echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP; echo "@";
+    echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
   ) | column  -t -s '@' 
   exit -1
 }
 
-function prepare_cmdline {
+## CONTAINER
+function container_create {
+
+
+  echo "Creating container"
+  PARAMETERS=$(container_setupparams)
+  docker create $PARAMETERS 
+}
+
+function container_run {
+
+  echo "Performing install in container"
+  PARAMETERS=$(container_setupparams)
+  docker run $PARAMETERS --entrypoint "/install.sh"
+    
+}
+
+function container_commit {
+    docker commit $CNAME $INAME
+}
+
+function container_exists {
+    docker container ls --all |grep -q $CNAME
+
+}
+
+function container_stop {
+    docker stop $CNAME
+}
+
+function container_destroy {
+    container_isrunning && container_stop && container_wait 
+    docker rm $CNAME
+
+}
+
+function container_isrunning {
+    docker ps | grep -q $INAME
+}
+
+function container_wait {
+    docker wait $CNAME
+}
+
+function container_start {
+    docker start $CNAME
+}
+
+function container_exec {
+    CMD=$1
+    docker exec $CNAME $CMD
+}
+
+function container_setup {
+
+    container_exists && container_destroy; 
+    container_run;
+    container_wait;
+    container_commit;
+    container_destroy;
+    container_create;
+}
+
+function container_setupparams {
+
+# Setup bindings (things to be passed to the container)
+  
+  BINDINGS="-e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
+  BINDINGS+="--name $CNAME -h $HNAME"   
+  for directory in ${VISIBLE_DIRECTORIES[*]};
+  do
+    BINDINGS+=" --volume=${directory}:${directory}:rw";
+  done
+
+  for device in ${DEVICE_DRIVERS[*]};
+  do
+    BINDINGS+=" --device=${device}:${device}:rw";
+  done
+
+  for socket in ${VISIBLE_SOCKETS[*]};
+  do
+    BINDINGS+=" --volume=${socket}:${socket}:rw";
+  done
+  
+  BINDINGS+=" --privileged -it $INAME"
+
+  echo $BINDINGS
+}
+
+
+function image_exists {
+    docker image ls -a ${INAME}:latest  |grep -q latest
+}
+
+
+function image_fastsetupprepare {
+    
+    container_exists && (
+        echo "Extracting files";
+        docker cp  ${CNAME}:/var/cache/pacman/pkg overrides/var/cache/pacman;
+        echo "Using extracted files";
+        rsync -a overrides/ preload;
+    )
+}
+
+
+function cmdline_parse {
 # Reformule les options avant de lancer l'analyse des parametres a envoyer au daemon.
 
 OUTSCRIPT="preload/template.sh"
@@ -188,6 +246,7 @@ OUTSCRIPT="preload/template.sh"
   CEMU=""
   DOLPHIN=""
   CITRA=""
+  CEMU=""
 
   CC=""
   CXX=""
@@ -201,8 +260,9 @@ OUTSCRIPT="preload/template.sh"
   LDFLAGS="-Wl,--sort-common -Wl,-z,now"
   EN_GALLIUM=""
   EN_DRI=1
+  FP=""
 
-  # Build 
+  
   for program_arg in ${INPARMS}; do
     case $program_arg in
     --steam)
@@ -210,6 +270,9 @@ OUTSCRIPT="preload/template.sh"
       ;;
     --wine-steam)
       WINE_STEAM=0
+      ;;
+    --cemu*)
+      CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
       ;;
     --dolphin)
       DOLPHIN=0
@@ -224,6 +287,7 @@ OUTSCRIPT="preload/template.sh"
     --optimise-harder)
       OP_FLAGS+='-march=native -O3 -pipe '  
       LDFLAGS="-Wl,-O3 $LDFLAGS"
+      EN_DRI=""
       ;;
     --use-lto)
       OP_FLAGS+=' -flto '
@@ -249,12 +313,19 @@ OUTSCRIPT="preload/template.sh"
     --mesa-stable)
       MESA_BRANCH=$MESA_STABLE
       ;;
+    --fast-setup)
+      FP=""  
+      ;;
     --bleeding-edge)
       BE=1
       ;;
     --add-dir=*)
-      directory=$(echo program_arg | sed s/=/\ / | awk '{ $1=""; print }')
+      directory=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
       VISIBLE_DIRECTORIES+=( "$directory" )
+      ;;
+    --add-device=*)
+      device=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
+      DEVICE_DRIVERS+=( "$device" )
       ;;
     *) OUTPARMS+="$program_arg "
     ;;
@@ -317,12 +388,13 @@ OUTSCRIPT="preload/template.sh"
   [ -z $CITRA ] || echo "INSTALL_CITRA=1" >> $TEMPLATE_FILE
   [ -z $RPCS3 ] || echo "INSTALL_RPCS3=1" >> $TEMPLATE_FILE
   [ -z $DOLPHIN ] || echo "INSTALL_DOLPHIN=1" >> $TEMPLATE_FILE
+  [ -z $CEMU ] || echo "INSTALL_CEMU=$CEMU" >> $TEMPLATE_FILE
 
   echo $OUTPARMS
 
 }
 
-function prepare_docker_cmdline {
+function image_gencmdline {
   
   IMAGE_SWITCHES=""
   
@@ -338,7 +410,7 @@ function prepare_docker_cmdline {
   echo $IMAGE_SWITCHES
 }
 
-function prepare_install {
+function installscript_generate {
   INSTALL_FILE=preload/install.sh
   TEMPLATE_FILE=template.sh
   cp helpers/cemu.sh preload/cemu.sh
@@ -346,35 +418,46 @@ function prepare_install {
   [ -f $INSTALL_FILE ] && rm $INSTALL_FILE
   echo ". /${TEMPLATE_FILE}" >> $INSTALL_FILE
   echo '[ -z $INSTALL_CEMU ] || bash /cemu.sh' >> $INSTALL_FILE
+  echo '[ -z $INSTALL_STEAM ] || bash /steam.sh' >> $INSTALL_FILE
+  echo '[ -z $INSTALL_STEAM_WINE ] || bash /steam-wine.sh' >> $INSTALL_FILE
+  echo '[ -z $INSTALL_DOLPHIN ] || bash /dolphin.sh' >> $INSTALL_FILE
+  echo '[ -z $INSTALL_CITRA ] || bash /citra.sh' >> $INSTALL_FILE
+  echo '[ -z $INSTALL_RPCS3 ] || bash /rpcs3.sh' >> $INSTALL_FILE
 }
 
 
-## START
+## Demarrage
+[ "$1" == "--help" ]&&usage_show;
+[ "$1" == "--fast-setup" ]&&image_fastsetupprepare;
 
-#echo -n "Checking if the container is not already running: "
-#[ $(ContainerIsUp) ]&&echo "OK"||( echo "Container is already running, stopping it"; Stop )
-#docker container list --all|grep -q $CNAME && docker rm $CNAME
 
-[ "$1" == "--help" ]&&usage;
+# Interception des parametres
 ARGS=$@
-
-NEWARGS="$(prepare_cmdline)"
+NEWARGS="$(cmdline_parse)"
 ARGS=$NEWARGS
-CMDLINE="$(prepare_docker_cmdline)"
 
-create_user
-prepare_install
-
-
-echo "About to run  : docker build --pull -t kazhed/mesamild --build-arg "MY_USERNAME=$(whoami)" "$CMDLINE" . "
-echo "Press [enter] to continue OR exit with [CTRL] + [C]"
-read
-
-[ -f $CIDFILE ]&&rm $CIDFILE
-
-#docker build --pull -t kazhed/mesamild --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
-PrepareSocket
+# Vivification du parametrage
+CMDLINE="$(image_gencmdline)"
 ARGS=""
-Create
+
+# Mise a disposition des scripts
+account_generate
+installscript_generate
+
+# Averti avant de tout casser 
+image_exists &&     
+    ( 
+        echo "Image exists, skipping (use 'docker rmi $INAME' to rebuild ) " ) ||  
+    ( 
+        echo "About to create an image using : --build-arg MY_USERNAME=$(whoami) $CMDLINE" ;
+        echo "Press [enter] to continue OR exit with [CTRL] + [C]";
+        read;
+        docker build --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
+    )   
 
 
+# Prepare le display 
+socket_setup
+
+# Monte les peripheriques et joue le reste de l'installation, car elle necessite un display (merci wine...)
+container_setup
