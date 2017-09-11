@@ -5,3 +5,4 @@ INSTRUCTIONS.md
 *.sh
 .git/*
 trash/*
+overrides/*

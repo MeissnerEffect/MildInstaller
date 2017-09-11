@@ -1,5 +1,6 @@
 create_user.sh
 overrides/pacman.conf
+overrides/*/*
 preload/
 CHANGELOG.md
 SetupCemu.sh
