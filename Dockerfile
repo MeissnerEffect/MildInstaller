@@ -19,12 +19,12 @@ ENV MY_USERNAME=${MY_USERNAME} \
     
 
 # Add files from host to container 
-ADD preload/* /
+COPY preload/* /
 
 # Setup Account and allow to "sudo" 
 RUN \
   bash /create_user.sh; \
-  rm /create_user.sh \
+  rm /create_user.sh; \
   echo "$MY_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers; \
   [ -d /usr/src/mesamild ] || mkdir /usr/src/mesamild; \
   chown ${MY_USERNAME}:users /usr/src/mesamild; \

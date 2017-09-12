@@ -2,7 +2,7 @@ README.md
 INSTRUCTIONS.md
 Setup.sh
 .git/*
-trash/*
-overrides/*
+trash/
+overrides/
 debug.sh
-*swp
+

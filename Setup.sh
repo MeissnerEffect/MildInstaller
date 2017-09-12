@@ -29,6 +29,7 @@ VISIBLE_SOCKETS=( $PULSE $DBUS_SESSION_BUS_ADDRESS $DBUS_SOCKET $DBUS $SHAREDMEM
 declare -a APP_NAMES
 APP_BASEDIR=/launcher
 PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
+
 [ -d "$PLDAPP_BASEDIR" ] || mkdir -p  "$PLDAPP_BASEDIR"
 
 # Comment faisait on avant les dictionnaires en bash? En perl, pardi!
@@ -43,9 +44,9 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
 
 declare -A INSTALLER_SETUP=(
     ["--help"]="This help"
-    ["--trim"]="Trim images"
-    ["--update"]="Destroy previous image and restart build process"
-    ["--prune"]="Remove every containers and images from this application"
+#    ["--trim"]="Trim images"
+#    ["--update"]="Destroy previous image and restart build process"
+#    ["--prune"]="Remove every containers and images from this application"
 )
 
 declare -A COMPILER_SETUP=(
@@ -65,29 +66,29 @@ declare -A MESA_SETUP=(
 )
 
 declare -A ANTERGOS_SETUP=(
-    ["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
-    ["--mesa-stable"]="Use stable version of mesa"
+#    ["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
+#    ["--mesa-stable"]="Use stable version of mesa"
     ["--wine-staging"]="Install wine staging instead of wine"
     ["--wine-staging-nine"]="Install wine-staging-nine instead of wine"
-    ["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
+#    ["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
 )
 
 declare -A IMAGE_SETUP=(
+#    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
     ["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
-    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
-    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
-    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
+#    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
+#    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
+#    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
     ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
     ["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
-    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
 )
 
 declare -A CONTAINER_SETUP=(
     ["--add-dir=X"]="Add the X directory in the container"
     ["--add-device=X"]="Add the char device X in the container"
-    ["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
-    ["--max-ram=X"]="Hard memory limit"
-    ["--max-swap=X,Y"]="Use max swap and define swapiness"
+#    ["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
+#    ["--max-ram=X"]="Hard memory limit"
+#    ["--max-swap=X,Y"]="Use max swap and define swapiness"
 )
 
 # Display 
@@ -280,7 +281,7 @@ function image_update {
 function cmdline_parse {
 # Reformule les options avant de lancer l'analyse des parametres a envoyer au daemon.
 
-    OUTSCRIPT="preload/${APP_BASEDIR}/settings.sh"
+    OUTSCRIPT="$PLDAPP_BASEDIR/settings.sh"
     OUTPARMS=""
     INPARMS="${ARGS}"
     OP_FLAGS=""
@@ -441,7 +442,7 @@ function cmdline_parse {
     [ -z $RPCS3 ]         || echo "INSTALL_RPCS3=1";
     [ -z $DOLPHIN ]       || echo "INSTALL_DOLPHIN=1";
     [ -z $CEMU ]          || echo "INSTALL_CEMU=$CEMU";
-  )  > $APP_BASEDIR/settings.sh
+  )  > $PLDAPP_BASEDIR/settings.sh
 
   echo $OUTPARMS
 
@@ -505,7 +506,7 @@ image_exists &&
         # Mise a disposition des scripts
         account_generate
         installscript_generate
-        docker build --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
+        docker build --compress --force-rm --no-cache --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
     )   
 
 
