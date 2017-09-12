@@ -106,7 +106,7 @@ RUN \
   sudo find /var/cache/pacman/pkg -name "*mesa-git*" -delete ; \
   sudo find /usr/src/mesamild/lib32-mesa-git /usr/src/mesamild/mesa-git  -name "*.pkg.tar.xz" -exec cp {} /var/cache/pacman/pkg \; ; \
   sudo rm -rf /usr/src/mesamild; \
-  sudo chmod +x /*.sh
+  sudo chmod +x /launcher/*.sh
 
 CMD cd ; bash  
 
