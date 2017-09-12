@@ -31,6 +31,28 @@ APP_BASEDIR=/
 # Comment faisait on avant les dictionnaires en bash? En perl, pardi!
 # AFAIRE : Mettre les constantes en LS
 
+# Couleur
+  noi=$(tput setaf 0) 
+  rou=$(tput setaf 1) 
+  ver=$(tput setaf 2) 
+  mar=$(tput setaf 3)
+  ble=$(tput setaf 4)
+  vio=$(tput setaf 5)
+  cya=$(tput setaf 6)
+  bla=$(tput setaf 7)
+  sms=$(tput smso)
+  rms=$(tput rmso)
+  rei=$(tput sgr0)
+
+
+declare -A INSTALLER_SETUP=(
+    ["--help"]="This help"
+    ["--trim"]="Trim images"
+    ["--update"]="Destroy previous image and restart build process"
+    ["--prune"]="Remove every containers and images from this application"
+    ["--dump-dl"]="Dump all downloads for reuse"
+)
+
 declare -A COMPILER_SETUP=(
     ["--optimise"]="Use safe compiler optimisation"
     ["--optimise-harder"]="Use unsafe compiler optimisation"
@@ -115,30 +137,24 @@ function usage_generatetext {
 
 function usage_show () {
   echo "Usage : $(basename $0)"
-  ver=$(tput setaf 2) 
-  mar=$(tput setaf 3)
-  ble=$(tput setaf 4)
-  vio=$(tput setaf 5)
-  cya=$(tput setaf 6)
-  sms=$(tput smso)
-  rms=$(tput rmso)
-  rei=$(tput sgr0)
 
   echo "Prepare a new container that includes MesaMild"
   (
+    echo "> INSTALLER OPTIONS"; usage_generatetext INSTALLER_SETUP;echo "@";
     echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;echo "@";
     echo "> MESA OPTIONS";      usage_generatetext MESA_SETUP;echo "@";
     echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;echo "@";
     echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP; echo "@";
     echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
   )  | column  -t -s '@'|cat|
+  sed -e "s/>\ INS/$rou\ INS/g" |
   sed -e "s/>\ COM/$ble\ COM/g" |
   sed -e "s/>\ M/$ver\ M/g"     |
   sed -e "s/>\ OS/$mar\ OS/g"   |
   sed -e "s/>\ EM/$vio\ EM/g"   |
   sed -e "s/>\ CON/$cya\ CON/g" |
   sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
-  echo -e "$rei"
+  echo "$rei"
 
   exit -1
 }
