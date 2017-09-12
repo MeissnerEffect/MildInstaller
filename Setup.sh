@@ -26,7 +26,8 @@ XAUTH=/tmp/.${CNAME}.xauth
 MACHINE_ID="/etc/machine-id"
 
 VISIBLE_SOCKETS=( $PULSE $DBUS_SESSION_BUS_ADDRESS $DBUS_SOCKET $DBUS $SHAREDMEMORY $XSOCK $XAUTH $MACHINE_ID)
-
+declare -a APP_NAMES
+APP_BASEDIR=/
 # Comment faisait on avant les dictionnaires en bash? En perl, pardi!
 # AFAIRE : Mettre les constantes en LS
 
@@ -47,28 +48,29 @@ declare -A MESA_SETUP=(
 )
 
 declare -A ANTERGOS_SETUP=(
-    #["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
-    #["--mesa-stable"]="Use stable version of mesa"
+    ["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
+    ["--mesa-stable"]="Use stable version of mesa"
     ["--wine-staging"]="Install wine staging instead of wine"
     ["--wine-staging-nine"]="Install wine-staging-nine instead of wine"
-    #["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
+    ["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
 )
 
 declare -A IMAGE_SETUP=(
     ["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
-    #["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
-    #["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
-    #["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
-    #["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
-    #["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
+    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
+    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
+    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
+    ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
+    ["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
+    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
 )
 
 declare -A CONTAINER_SETUP=(
     ["--add-dir=X"]="Add the X directory in the container"
     ["--add-device=X"]="Add the char device X in the container"
-    #["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
-    #["--max-ram=X"]="Hard memory limit"
-    #["--max-swap=X,Y"]="Use max swap and define swapiness"
+    ["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
+    ["--max-ram=X"]="Hard memory limit"
+    ["--max-swap=X,Y"]="Use max swap and define swapiness"
 )
 
 # Display 
@@ -113,6 +115,15 @@ function usage_generatetext {
 
 function usage_show () {
   echo "Usage : $(basename $0)"
+  ver=$(tput setaf 2) 
+  mar=$(tput setaf 3)
+  ble=$(tput setaf 4)
+  vio=$(tput setaf 5)
+  cya=$(tput setaf 6)
+  sms=$(tput smso)
+  rms=$(tput rmso)
+  rei=$(tput sgr0)
+
   echo "Prepare a new container that includes MesaMild"
   (
     echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;echo "@";
@@ -120,24 +131,41 @@ function usage_show () {
     echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;echo "@";
     echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP; echo "@";
     echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
-  ) | column  -t -s '@' 
+  )  | column  -t -s '@'|cat|
+  sed -e "s/>\ COM/$ble\ COM/g" |
+  sed -e "s/>\ M/$ver\ M/g"     |
+  sed -e "s/>\ OS/$mar\ OS/g"   |
+  sed -e "s/>\ EM/$vio\ EM/g"   |
+  sed -e "s/>\ CON/$cya\ CON/g" |
+  sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
+  echo -e "$rei"
+
   exit -1
 }
 
 ## CONTAINER
 function container_create {
-
-
   echo "Creating container"
   PARAMETERS=$(container_setupparams)
-  docker create $PARAMETERS 
+  echo "docker create $PARAMETERS"
+  docker create --entrypoint /usr/bin/bash $PARAMETERS 
+}
+
+function container_createapp {
+  APP=$1
+  echo "Creating container for application $APP"
+  PARAMETERS=$(container_setupparams $APP)
+  echo "docker create $PARAMETERS"
+  docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS 
+  # ${APP_BASEDIR}${APP}.sh
 }
 
 function container_run {
 
   echo "Performing install in container"
   PARAMETERS=$(container_setupparams)
-  docker run $PARAMETERS --entrypoint "/install.sh"
+  echo "docker run $PARAMETERS"
+  docker run --entrypoint /usr/bin/bash $PARAMETERS /install.sh
     
 }
 
@@ -178,21 +206,36 @@ function container_exec {
 }
 
 function container_setup {
+    echo "Creating containers"
+    OLD_CNAME=$CNAME
+    echo ${APP_NAMES[*]}
+    #for app in ${APP_NAMES[*]}; do
+    for app in "cemu"; do
+      CNAME="${CNAME}${app}"
+      container_exists && container_destroy; 
+      CNAME=$OLD_CNAME
+      container_createapp $app;
+    done
+}
+
+function container_setup_in {
 
     container_exists && container_destroy; 
     container_run;
     container_wait;
     container_commit;
     container_destroy;
-    container_create;
+    for app in ${APP_NAMES[*]}; do
+      container_createapp $app;
+    done
 }
 
 function container_setupparams {
 
 # Setup bindings (things to be passed to the container)
-  
-  BINDINGS="-e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
-  BINDINGS+="--name $CNAME -h $HNAME"   
+  NAME_SUFFIX=$1
+  BINDINGS=" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
+  BINDINGS+=" --name ${CNAME}-${NAME_SUFFIX} -h $HNAME"   
   for directory in ${VISIBLE_DIRECTORIES[*]};
   do
     BINDINGS+=" --volume=${directory}:${directory}:rw";
@@ -210,7 +253,7 @@ function container_setupparams {
   
   BINDINGS+=" --privileged -it $INAME"
 
-  echo $BINDINGS
+  echo "$BINDINGS"
 }
 
 
@@ -267,12 +310,14 @@ OUTSCRIPT="preload/template.sh"
     case $program_arg in
     --steam)
       STEAM=0
+      APP_NAMES+=( "steam.sh" )
       ;;
     --wine-steam)
       WINE_STEAM=0
       ;;
     --cemu*)
       CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
+      APP_NAMES+=( "cemu.sh" )
       ;;
     --dolphin)
       DOLPHIN=0
@@ -440,9 +485,6 @@ ARGS=$NEWARGS
 CMDLINE="$(image_gencmdline)"
 ARGS=""
 
-# Mise a disposition des scripts
-account_generate
-installscript_generate
 
 # Averti avant de tout casser 
 image_exists &&     
@@ -452,6 +494,10 @@ image_exists &&
         echo "About to create an image using : --build-arg MY_USERNAME=$(whoami) $CMDLINE" ;
         echo "Press [enter] to continue OR exit with [CTRL] + [C]";
         read;
+        
+        # Mise a disposition des scripts
+        account_generate
+        installscript_generate
         docker build --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
     )   
 

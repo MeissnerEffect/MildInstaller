@@ -4,14 +4,41 @@
 
 . /template.sh
 
-VESERION=$INSTALL_CEMU
-WINEARCH="win64" 
-WINEPREFIX="$HOME/.cemu_prefix"
+export WINEARCH="win64" 
+export WINEPREFIX="$HOME/.cemu_prefix"
+export WINEDEBUG="-all"
 
 APPDIR=$WINEPREFIX/drive_c/cemu
 EXEC=$APPDIR/latest/Cemu.exe
 cemu_version="cemu_${INSTALL_CEMU}"
+MENUDIR=$HOME/.local/share/applications/cemu
 
+DECFG="[Desktop Entry]
+Name=Wine Cemu's settings
+Comment=Allow to change Cemu's prefix settings
+Exec=winecfg
+Terminal=false
+Icon=wine-winecfg
+Type=Application
+Categories=WineCNT;"
+
+DEBRW="[Desktop Entry]
+Name=Browse Cemu's C: Drive
+Comment=Browse your virtual C: drive
+Exec=wine winebrowser c:
+Terminal=false
+Type=Application
+Icon=folder-wine
+Categories=WineCNT;"
+
+DERUN="[Desktop Entry]
+Name=Cemu
+Comment=Launch CEMU inside a container
+Exec=wine64 $EXEC
+Terminal=false
+Icon=wine-winecfg
+Type=Application
+Categories=WineCNT;"
 
 function setup() {
   WINEARCH=$WINEARCH WINEPREFIX=$WINEPREFIX wineboot -u
@@ -25,6 +52,11 @@ function setup() {
   ln -s $APPDIR/$CE $APPDIR/latest
   sed -e "s/#version 420/#version 450/" -i $EXEC ;
   chmod +x $EXEC
+  mkdir -p $MENUDIR
+  echo $DERUN > $MENUDIR/cemu.desktop
+  echo $DEBRW > $MENUDIR/browse-cemu.desktop
+  echo $DECFG > $MENUDIR/configure-cemu.desktop
+
   exit 0
 }
 
