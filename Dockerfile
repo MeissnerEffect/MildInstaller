@@ -19,7 +19,7 @@ ENV MY_USERNAME=${MY_USERNAME} \
     
 
 # Add files from host to container 
-COPY preload/* /
+COPY preload/ /
 
 # Setup Account and allow to "sudo" 
 RUN \
