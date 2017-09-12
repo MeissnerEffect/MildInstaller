@@ -139,18 +139,18 @@ function usage_show () {
 
     echo "Prepare a new container that includes MesaMild"
     (
-        echo "> INSTALLER OPTIONS"; usage_generatetext INSTALLER_SETUP; echo "@";
-        echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;  echo "@";
-        echo "> MESA OPTIONS";      usage_generatetext MESA_SETUP;      echo "@";
-        echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;  echo "@";
-        echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP;     echo "@";
-        echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
+        echo "> INSTALLER OPTIONS";     usage_generatetext INSTALLER_SETUP; echo "@";
+        echo "> APPLICATIONS OPTIONS";  usage_generatetext IMAGE_SETUP;     echo "@";
+        echo "> CONTAINER OPTIONS";     usage_generatetext CONTAINER_SETUP; echo "@"
+        echo "> OS OPTIONS";            usage_generatetext ANTERGOS_SETUP;  echo "@";
+        echo "> MESA OPTIONS";          usage_generatetext MESA_SETUP;      echo "@";
+        echo "> COMPILER OPTIONS";      usage_generatetext COMPILER_SETUP;  echo "@";
     )  | column  -t -s '@'|cat|
     sed -e "s/>\ INS/$rou\ INS/g" |
     sed -e "s/>\ COM/$ble\ COM/g" |
     sed -e "s/>\ M/$ver\ M/g"     |
     sed -e "s/>\ OS/$mar\ OS/g"   |
-    sed -e "s/>\ EM/$vio\ EM/g"   |
+    sed -e "s/>\ AP/$vio\ AP/g"   |
     sed -e "s/>\ CON/$cya\ CON/g" |
     sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
     echo "$rei"
@@ -179,7 +179,6 @@ function container_createapp {
 
 function container_run {
 
-  
     PARAMETERS=$(container_setupparams)
     echo "docker run $PARAMETERS"
     docker run --entrypoint /usr/bin/bash $PARAMETERS "$APP_BASEDIR/install.sh"
@@ -478,11 +477,9 @@ function installscript_generate {
   ) > $PLDAPP_BASEDIR/install.sh
 }
 
-
 ## Demarrage
 [ "$1" == "--help" ]&&usage_show;
 [ "$1" == "--update" ]&&image_update;
-
 
 # Interception des parametres
 ARGS=$@
@@ -492,7 +489,6 @@ ARGS=$NEWARGS
 # Vivification du parametrage
 CMDLINE="$(image_gencmdline)"
 ARGS=""
-
 
 # Averti avant de tout casser 
 image_exists &&     
@@ -506,9 +502,8 @@ image_exists &&
         # Mise a disposition des scripts
         account_generate
         installscript_generate
-        docker build --compress --force-rm --no-cache --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
+        docker build --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
     )   
-
 
 # Prepare le display 
 socket_setup
