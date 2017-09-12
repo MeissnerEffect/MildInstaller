@@ -34,7 +34,7 @@ Categories=WineCNT;"
 DERUN="[Desktop Entry]
 Name=Cemu
 Comment=Launch CEMU inside a container
-Exec=wine64 $EXEC
+Exec=docker start gaming-container-cemu
 Terminal=false
 Icon=wine-winecfg
 Type=Application
@@ -54,8 +54,8 @@ function setup() {
   chmod +x $EXEC
   mkdir -p $MENUDIR
   echo $DERUN > $MENUDIR/cemu.desktop
-  echo $DEBRW > $MENUDIR/browse-cemu.desktop
-  echo $DECFG > $MENUDIR/configure-cemu.desktop
+  #echo $DEBRW > $MENUDIR/browse-cemu.desktop
+  #echo $DECFG > $MENUDIR/configure-cemu.desktop
 
   exit 0
 }

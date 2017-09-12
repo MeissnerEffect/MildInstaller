@@ -27,22 +27,18 @@ MACHINE_ID="/etc/machine-id"
 
 VISIBLE_SOCKETS=( $PULSE $DBUS_SESSION_BUS_ADDRESS $DBUS_SOCKET $DBUS $SHAREDMEMORY $XSOCK $XAUTH $MACHINE_ID)
 declare -a APP_NAMES
-APP_BASEDIR=/
+APP_BASEDIR=/launcher
+PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
+[ -d "$PLDAPP_BASEDIR" ] || mkdir -p  "$PLDAPP_BASEDIR"
+
 # Comment faisait on avant les dictionnaires en bash? En perl, pardi!
 # AFAIRE : Mettre les constantes en LS
 
-# Couleur
-  noi=$(tput setaf 0) 
-  rou=$(tput setaf 1) 
-  ver=$(tput setaf 2) 
-  mar=$(tput setaf 3)
-  ble=$(tput setaf 4)
-  vio=$(tput setaf 5)
-  cya=$(tput setaf 6)
-  bla=$(tput setaf 7)
-  sms=$(tput smso)
-  rms=$(tput rmso)
-  rei=$(tput sgr0)
+# Couleurs
+  noi=$(tput setaf 0);rou=$(tput setaf 1);ver=$(tput setaf 2) 
+  mar=$(tput setaf 3);ble=$(tput setaf 4);vio=$(tput setaf 5)
+  cya=$(tput setaf 6);bla=$(tput setaf 7);sms=$(tput smso)
+  rms=$(tput rmso);rei=$(tput sgr0)
 
 
 declare -A INSTALLER_SETUP=(
@@ -50,7 +46,6 @@ declare -A INSTALLER_SETUP=(
     ["--trim"]="Trim images"
     ["--update"]="Destroy previous image and restart build process"
     ["--prune"]="Remove every containers and images from this application"
-    ["--dump-dl"]="Dump all downloads for reuse"
 )
 
 declare -A COMPILER_SETUP=(
@@ -106,82 +101,87 @@ function socket_setup {
 }
 
 function account_generate {
-  OUTFILE=preload/create_user.sh
-  CUSERNAME=$(id -un)
-  CUID=$(id -u)
-  CPGID=$(id -g)
-  CPGIDNAME=$(cat /etc/group | grep "${CPGID}:")
-  cat /etc/group |grep $CUSERNAME|tr ':' ' '|awk '{printf("groupadd -og %d g%d\n",$3,$3)}' > $OUTFILE
-  CUSERGROUP=$(cat /etc/group | grep $CUSERNAME  | tr ":" " " | awk '{ print $3}' | tr '\n' ',' | sed s/.$//)
-  echo "mkdir -p $(dirname $HOME)" >> $OUTFILE 
-  echo "useradd -o -b / -d $HOME -m -G ${CUSERGROUP} -U -u $CUID $CUSERNAME" >> $OUTFILE
+  
+    OUTFILE="preload/create_user.sh"
+    CUSERNAME=$(id -un)
+    CUID=$(id -u)
+    CPGID=$(id -g)
+    CPGIDNAME=$(cat /etc/group | grep "${CPGID}:")
+    cat /etc/group |grep $CUSERNAME|tr ':' ' '|awk '{printf("groupadd -og %d g%d\n",$3,$3)}' > $OUTFILE
+    CUSERGROUP=$(cat /etc/group | grep $CUSERNAME  | tr ":" " " | awk '{ print $3}' | tr '\n' ',' | sed s/.$//)
+    echo "mkdir -p $(dirname $HOME)" >> $OUTFILE 
+    echo "useradd -o -b / -d $HOME -m -G ${CUSERGROUP} -U -u $CUID $CUSERNAME" >> $OUTFILE
 }
 
 
 function usage_generatetext {
-  keys=""
+    
+    keys=""
 
-  local -n ITEM=$1
-  for key in "${!ITEM[@]}"; do
-    keys+="$key "
-  done
+    local -n ITEM=$1
+    for key in "${!ITEM[@]}"; do
+        keys+="$key "
+    done
 
-  KEYS=$(echo $keys|tr ' ' '\n'|sort -b)
+    KEYS=$(echo $keys|tr ' ' '\n'|sort -b)
 
-  for KEY in $KEYS; do
-    VAL=${ITEM[$KEY]}
-    echo " >   $KEY" "@" $VAL  
-  done
+    for KEY in $KEYS; do
+        VAL=${ITEM[$KEY]}
+        echo " >   $KEY" "@" $VAL  
+    done
   
 }
 
 function usage_show () {
-  echo "Usage : $(basename $0)"
+    
+    echo "Usage : $(basename $0)"
 
-  echo "Prepare a new container that includes MesaMild"
-  (
-    echo "> INSTALLER OPTIONS"; usage_generatetext INSTALLER_SETUP;echo "@";
-    echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;echo "@";
-    echo "> MESA OPTIONS";      usage_generatetext MESA_SETUP;echo "@";
-    echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;echo "@";
-    echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP; echo "@";
-    echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
-  )  | column  -t -s '@'|cat|
-  sed -e "s/>\ INS/$rou\ INS/g" |
-  sed -e "s/>\ COM/$ble\ COM/g" |
-  sed -e "s/>\ M/$ver\ M/g"     |
-  sed -e "s/>\ OS/$mar\ OS/g"   |
-  sed -e "s/>\ EM/$vio\ EM/g"   |
-  sed -e "s/>\ CON/$cya\ CON/g" |
-  sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
-  echo "$rei"
+    echo "Prepare a new container that includes MesaMild"
+    (
+        echo "> INSTALLER OPTIONS"; usage_generatetext INSTALLER_SETUP; echo "@";
+        echo "> COMPILER OPTIONS";  usage_generatetext COMPILER_SETUP;  echo "@";
+        echo "> MESA OPTIONS";      usage_generatetext MESA_SETUP;      echo "@";
+        echo "> OS OPTIONS";        usage_generatetext ANTERGOS_SETUP;  echo "@";
+        echo "> EMULATORS OPTIONS"; usage_generatetext IMAGE_SETUP;     echo "@";
+        echo "> CONTAINER OPTIONS"; usage_generatetext CONTAINER_SETUP; echo "@"
+    )  | column  -t -s '@'|cat|
+    sed -e "s/>\ INS/$rou\ INS/g" |
+    sed -e "s/>\ COM/$ble\ COM/g" |
+    sed -e "s/>\ M/$ver\ M/g"     |
+    sed -e "s/>\ OS/$mar\ OS/g"   |
+    sed -e "s/>\ EM/$vio\ EM/g"   |
+    sed -e "s/>\ CON/$cya\ CON/g" |
+    sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
+    echo "$rei"
 
-  exit -1
+    exit -1
 }
 
 ## CONTAINER
 function container_create {
-  echo "Creating container"
-  PARAMETERS=$(container_setupparams)
-  echo "docker create $PARAMETERS"
-  docker create --entrypoint /usr/bin/bash $PARAMETERS 
+    
+    echo "Creating container"
+    PARAMETERS=$(container_setupparams)
+    echo "docker create $PARAMETERS"
+    docker create --entrypoint /usr/bin/bash $PARAMETERS 
 }
 
 function container_createapp {
-  APP=$1
-  echo "Creating container for application $APP"
-  PARAMETERS=$(container_setupparams $APP)
-  echo "docker create $PARAMETERS"
-  docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS 
-  # ${APP_BASEDIR}${APP}.sh
+    
+    APP=$1
+    echo "Creating container for application $APP"
+    PARAMETERS=$(container_setupparams $APP)
+    echo "docker create $PARAMETERS"
+    docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS 
+    # ${APP_BASEDIR}${APP}.sh
 }
 
 function container_run {
 
-  echo "Performing install in container"
-  PARAMETERS=$(container_setupparams)
-  echo "docker run $PARAMETERS"
-  docker run --entrypoint /usr/bin/bash $PARAMETERS /install.sh
+  
+    PARAMETERS=$(container_setupparams)
+    echo "docker run $PARAMETERS"
+    docker run --entrypoint /usr/bin/bash $PARAMETERS "$APP_BASEDIR/install.sh"
     
 }
 
@@ -234,42 +234,30 @@ function container_setup {
     done
 }
 
-function container_setup_in {
-
-    container_exists && container_destroy; 
-    container_run;
-    container_wait;
-    container_commit;
-    container_destroy;
-    for app in ${APP_NAMES[*]}; do
-      container_createapp $app;
-    done
-}
-
 function container_setupparams {
 
-# Setup bindings (things to be passed to the container)
-  NAME_SUFFIX=$1
-  BINDINGS=" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
-  BINDINGS+=" --name ${CNAME}-${NAME_SUFFIX} -h $HNAME"   
-  for directory in ${VISIBLE_DIRECTORIES[*]};
-  do
-    BINDINGS+=" --volume=${directory}:${directory}:rw";
-  done
+    # Setup bindings (things to be passed to the container)
+    NAME_SUFFIX=$1
+    BINDINGS=" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
+    BINDINGS+=" --name ${CNAME}-${NAME_SUFFIX} -h $HNAME"   
+    for directory in ${VISIBLE_DIRECTORIES[*]};
+    do
+        BINDINGS+=" --volume=${directory}:${directory}:rw";
+    done
 
-  for device in ${DEVICE_DRIVERS[*]};
-  do
-    BINDINGS+=" --device=${device}:${device}:rw";
-  done
+    for device in ${DEVICE_DRIVERS[*]};
+    do
+        BINDINGS+=" --device=${device}:${device}:rw";
+    done
 
-  for socket in ${VISIBLE_SOCKETS[*]};
-  do
-    BINDINGS+=" --volume=${socket}:${socket}:rw";
-  done
+    for socket in ${VISIBLE_SOCKETS[*]};
+    do
+        BINDINGS+=" --volume=${socket}:${socket}:rw";
+    done
   
-  BINDINGS+=" --privileged -it $INAME"
+    BINDINGS+=" --privileged -it $INAME"
 
-  echo "$BINDINGS"
+    echo "$BINDINGS"
 }
 
 
@@ -278,13 +266,13 @@ function image_exists {
 }
 
 
-function image_fastsetupprepare {
-    
+function image_update {
+    docker container ls  --all | grep $INAME
+
     container_exists && (
-        echo "Extracting files";
-        docker cp  ${CNAME}:/var/cache/pacman/pkg overrides/var/cache/pacman;
-        echo "Using extracted files";
-        rsync -a overrides/ preload;
+        echo "Extracting files from container";
+        [ -d preload/var/cache/pacman ] || mkdir -p preload/var/cache/pacman
+        docker cp  ${CNAME}:/var/cache/pacman/pkg preload/var/cache/pacman;
     )
 }
 
@@ -292,112 +280,115 @@ function image_fastsetupprepare {
 function cmdline_parse {
 # Reformule les options avant de lancer l'analyse des parametres a envoyer au daemon.
 
-OUTSCRIPT="preload/template.sh"
-  OUTPARMS=""
-  INPARMS="${ARGS}"
-
-  OP_FLAGS=""
-  WINE_FLAVOR="wine"
-  
-  STEAM=""
-  WINE_STEAM=""
-  RPCS3=""
-  CEMU=""
-  DOLPHIN=""
-  CITRA=""
-  CEMU=""
-
-  CC=""
-  CXX=""
-  VULKAN_DRIVERS=""
-  EN_VULKAN=""
-  DRI_DRIVERS=""
-  GALLIUM_DRIVERS=" swrast virgl "
-  KERB=""
-  MESA_BRANCH=master
-  BE=""
-  LDFLAGS="-Wl,--sort-common -Wl,-z,now"
-  EN_GALLIUM=""
-  EN_DRI=1
-  FP=""
+    OUTSCRIPT="preload/${APP_BASEDIR}/settings.sh"
+    OUTPARMS=""
+    INPARMS="${ARGS}"
+    OP_FLAGS=""
+    WINE_FLAVOR="wine"
+    STEAM=""
+    WINE_STEAM=""
+    RPCS3=""
+    CEMU=""
+    DOLPHIN=""
+    CITRA=""
+    CEMU=""
+    CC=""
+    CXX=""
+    VULKAN_DRIVERS=""
+    EN_VULKAN=""
+    DRI_DRIVERS=""
+    GALLIUM_DRIVERS=" swrast virgl "
+    KERB=""
+    MESA_BRANCH=master
+    BE=""
+    LDFLAGS="-Wl,--sort-common -Wl,-z,now"
+    EN_GALLIUM=""
+    EN_DRI=1
+    FP=""
 
   
-  for program_arg in ${INPARMS}; do
-    case $program_arg in
-    --steam)
-      STEAM=0
-      APP_NAMES+=( "steam.sh" )
-      ;;
-    --wine-steam)
-      WINE_STEAM=0
-      ;;
-    --cemu*)
-      CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
-      APP_NAMES+=( "cemu.sh" )
-      ;;
-    --dolphin)
-      DOLPHIN=0
-      ;;
-    --citra)
-      CITRA=0
-      ;;
-    --optimise)
-      OP_FLAGS+='-march=native -O2 -pipe '  
-      LDFLAGS="-Wl,-O2 $LDFLAGS"
-      ;;
-    --optimise-harder)
-      OP_FLAGS+='-march=native -O3 -pipe '  
-      LDFLAGS="-Wl,-O3 $LDFLAGS"
-      EN_DRI=""
-      ;;
-    --use-lto)
-      OP_FLAGS+=' -flto '
-      LDFLAGS="$LDFLAGS -Wl,-flto"
-      EN_DRI="" 
-      ;;
-    --wine-staging)
-      WINE_FLAVOR="wine-staging"
-      ;;
-    --wine-staging-nine)
-      WINE_FLAVOR="wine-staging-nine"
-      ;;
-    --clang)
-      CXX=clang++; CC=clang
-      ;;
-    --kerberizer-llvm)
-      KERB=1
-      ;;
-    --rpcs3)
-      KERB=1
-      OUTPARMS+="--rpcs3 "
-      ;;
-    --mesa-stable)
-      MESA_BRANCH=$MESA_STABLE
-      ;;
-    --fast-setup)
-      FP=""  
-      ;;
-    --bleeding-edge)
-      BE=1
-      ;;
-    --add-dir=*)
-      directory=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
-      VISIBLE_DIRECTORIES+=( "$directory" )
-      ;;
-    --add-device=*)
-      device=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
-      DEVICE_DRIVERS+=( "$device" )
-      ;;
-    *) OUTPARMS+="$program_arg "
-    ;;
-    esac
-  done
- INPARMS=$OUTPARMS
- OUTPARMS=""
+    for program_arg in ${INPARMS}; do
+        case $program_arg in
+        --steam)
+        STEAM=0
+        APP_NAMES+=( "steam.sh" )
+        ;;
+        --wine-steam)
+        WINE_STEAM=0
+        ;;
+        --cemu*)
+        CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
+        APP_NAMES+=( "cemu.sh" )
+        ;;
+        --dolphin)
+        DOLPHIN=0
+        ;;
+        --citra)
+        CITRA=0
+        ;;
+        --optimise)
+        OP_FLAGS+='-march=native -O2 -pipe '  
+        LDFLAGS="-Wl,-O2 $LDFLAGS"
+        ;;
+        --optimise-harder)
+        OP_FLAGS+='-march=native -O3 -pipe '  
+        LDFLAGS="-Wl,-O3 $LDFLAGS"
+        EN_DRI=""
+        ;;
+        --use-lto)
+        OP_FLAGS+=' -flto '
+        LDFLAGS="$LDFLAGS -Wl,-flto"
+        EN_DRI="" 
+        ;;
+        --wine-staging)
+        WINE_FLAVOR="wine-staging"
+        ;;
+        --wine-staging-nine)
+        WINE_FLAVOR="wine-staging-nine"
+        ;;
+        --clang)
+        CXX=clang++; CC=clang
+        ;;
+        --kerberizer-llvm)
+        KERB=1
+        ;;
+        --rpcs3)
+        KERB=1
+        OUTPARMS+="--rpcs3 "
+        ;;
+        --mesa-stable)
+        MESA_BRANCH=$MESA_STABLE
+        ;;
+        --prune)
+        PRUN=""  
+        ;;
+        --trim)
+        TRIM=""  
+        ;;
+        --update)
+        FP=""  
+        ;;
+        --bleeding-edge)
+        BE=1
+        ;;
+        --add-dir=*)
+        directory=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
+        VISIBLE_DIRECTORIES+=( "$directory" )
+        ;;
+        --add-device=*)
+        device=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
+        DEVICE_DRIVERS+=( "$device" )
+        ;;
+        *) OUTPARMS+="$program_arg "
+        ;;
+        esac
+    done
+    INPARMS=$OUTPARMS
+    OUTPARMS=""
  
- # Mesa
- for program_arg in ${INPARMS}; do
-  case $program_arg in
+    # Mesa
+    for program_arg in ${INPARMS}; do
+    case $program_arg in
     --radeon) 
       GALLIUM_DRIVERS+=" radeonsi "
       VULKAN_DRIVERS+=" radeon "
@@ -427,29 +418,30 @@ OUTSCRIPT="preload/template.sh"
     *)
       OUTPARMS+="$program_arg "
       ;;
-  esac
-  done
-  TEMPLATE_FILE=preload/template.sh
-  [ -f $TEMPLATE_FILE ] && rm $TEMPLATE_FILE
-
-  echo "" > $TEMPLATE_FILE
+    esac
+    done
+  
+  
   [ -z $EN_DRI ] && DRI_DRIVERS="''"  #LTO handling
   [ -z $DRI_DRIVERS ]|| OUTPARMS+=" $(echo "--dri_drivers=$DRI_DRIVERS"| tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/)"
   [ -z $EN_GALLIUM ]|| OUTPARMS+=" $(echo "--gallium_drivers=$GALLIUM_DRIVERS" | tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/g )"
-  [ -z $EN_VULKAN ]|| [ -z $VULKAN_DRIVERS ]||OUTPARMS+=" $(echo "--vulkan_drivers=$VULKAN_DRIVERS"| tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/)"
+  [ -z $EN_VULKAN ]|| [ -z $VULKAN_DRIVERS ]||OUTPARMS+=" $(echo "--vulkan_drivers=$VULKAN_DRIVERS"| tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/)"  
   CFLAGS=$(echo "$OP_FLAGS" | sed s/\ \ /\ /) 
-  echo CFLAGS=\"$CFLAGS\" >> $TEMPLATE_FILE
-  echo CXXFLAGS=\"$CFLAGS\" >> $TEMPLATE_FILE
-  echo LDFLAGS=\"$LDFLAGS\" >> $TEMPLATE_FILE
-  [ -z $CC ] ||  echo CC=/usr/bin/$CC >> $TEMPLATE_FILE
-  [ -z $CXX ] || echo CXX=/usr/bin/$CXX >> $TEMPLATE_FILE
-  echo WINE_FLAVOR=$WINE_FLAVOR >> $TEMPLATE_FILE
-  [ -z $STEAM ] || echo "INSTALL_STEAM=1" >> $TEMPLATE_FILE
-  [ -z $WINE_STEAM ] || echo "INSTALL_WINE_STEAM=1" >> $TEMPLATE_FILE
-  [ -z $CITRA ] || echo "INSTALL_CITRA=1" >> $TEMPLATE_FILE
-  [ -z $RPCS3 ] || echo "INSTALL_RPCS3=1" >> $TEMPLATE_FILE
-  [ -z $DOLPHIN ] || echo "INSTALL_DOLPHIN=1" >> $TEMPLATE_FILE
-  [ -z $CEMU ] || echo "INSTALL_CEMU=$CEMU" >> $TEMPLATE_FILE
+  
+  (
+    echo CFLAGS=\"$CFLAGS\";
+    echo CXXFLAGS=\"$CFLAGS\";
+    echo LDFLAGS=\"$LDFLAGS\";
+    [ -z $CC ]    || echo CC=/usr/bin/$CC;
+    [ -z $CXX ]   || echo CXX=/usr/bin/$CXX;
+    echo WINE_FLAVOR=$WINE_FLAVOR;
+    [ -z $STEAM ]         || echo "INSTALL_STEAM=1";
+    [ -z $WINE_STEAM ]    || echo "INSTALL_WINE_STEAM=1";
+    [ -z $CITRA ]         || echo "INSTALL_CITRA=1";
+    [ -z $RPCS3 ]         || echo "INSTALL_RPCS3=1";
+    [ -z $DOLPHIN ]       || echo "INSTALL_DOLPHIN=1";
+    [ -z $CEMU ]          || echo "INSTALL_CEMU=$CEMU";
+  )  > $APP_BASEDIR/settings.sh
 
   echo $OUTPARMS
 
@@ -472,24 +464,23 @@ function image_gencmdline {
 }
 
 function installscript_generate {
-  INSTALL_FILE=preload/install.sh
-  TEMPLATE_FILE=template.sh
-  cp helpers/cemu.sh preload/cemu.sh
+  # Genere un script d'installation dans $PLDAPP_BASEDIR
   
-  [ -f $INSTALL_FILE ] && rm $INSTALL_FILE
-  echo ". /${TEMPLATE_FILE}" >> $INSTALL_FILE
-  echo '[ -z $INSTALL_CEMU ] || bash /cemu.sh' >> $INSTALL_FILE
-  echo '[ -z $INSTALL_STEAM ] || bash /steam.sh' >> $INSTALL_FILE
-  echo '[ -z $INSTALL_STEAM_WINE ] || bash /steam-wine.sh' >> $INSTALL_FILE
-  echo '[ -z $INSTALL_DOLPHIN ] || bash /dolphin.sh' >> $INSTALL_FILE
-  echo '[ -z $INSTALL_CITRA ] || bash /citra.sh' >> $INSTALL_FILE
-  echo '[ -z $INSTALL_RPCS3 ] || bash /rpcs3.sh' >> $INSTALL_FILE
+  # Copie les bidules
+  cp helpers/* $PLDAPP_BASEDIR/
+  
+  ( echo ". $APP_BASEDIR/settings.sh"; 
+        for app in CEMU STEAM STEAM_WINE DOLPHIN CITRA RPCS3 DECAF; do
+            loc=$(echo $app | tr '[:upper:]' '[:lower:]');
+            echo "[ -z  \$INSTALL_${app} ]|| bash $APP_BASEDIR/${loc}.sh";
+        done
+  ) > $PLDAPP_BASEDIR/install.sh
 }
 
 
 ## Demarrage
 [ "$1" == "--help" ]&&usage_show;
-[ "$1" == "--fast-setup" ]&&image_fastsetupprepare;
+[ "$1" == "--update" ]&&image_update;
 
 
 # Interception des parametres

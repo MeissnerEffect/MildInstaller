@@ -24,6 +24,7 @@ ADD preload/* /
 # Setup Account and allow to "sudo" 
 RUN \
   bash /create_user.sh; \
+  rm /create_user.sh \
   echo "$MY_USERNAME ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers; \
   [ -d /usr/src/mesamild ] || mkdir /usr/src/mesamild; \
   chown ${MY_USERNAME}:users /usr/src/mesamild; \
@@ -36,7 +37,7 @@ RUN \
   pacman -Sqyy; \
   pacman -Sq --needed --noconfirm git $(pacman -Ss base-devel | grep base-devel | tr "/" " " | awk '{print $2}' | grep -v gcc | tr '\n' ' '); \
   pacman -Q | grep -q gcc-multilib || (yes | LC_ALL=C sudo pacman -Sq  gcc-multilib); \
-  . /template.sh; \
+  . /launcher/settings.sh; \
   pacman -Sqyu --needed --noconfirm clang-svn acl adwaita-icon-theme alsa-lib alsa-plugins apr apr-util arch-install-scripts at-spi2-atk \ 
   at-spi2-core atk attr autoconf automake avahi bash binutils bison bzip2 ca-certificates ca-certificates-cacert  \
   ca-certificates-mozilla ca-certificates-utils cabextract cairo cantarell-fonts compositeproto coreutils cracklib cryptsetup  \
@@ -78,7 +79,7 @@ RUN \
 
 USER $MY_USERNAME
 RUN \
-  . /template.sh; \
+  . /launcher/settings.sh; \
   cd /usr/src/mesamild; \
   yaourt -Gq mesa-git ; yaourt -Gq lib32-mesa-git; \
   [ -d /usr/src/mesamild/mesa ] || (git clone $mesa_repository -b $mesa_branch mesa;                \
@@ -104,7 +105,6 @@ RUN \
   yes | LC_ALL=C sudo pacman -U $PKG --force ;  \
   sudo find /var/cache/pacman/pkg -name "*mesa-git*" -delete ; \
   sudo find /usr/src/mesamild/lib32-mesa-git /usr/src/mesamild/mesa-git  -name "*.pkg.tar.xz" -exec cp {} /var/cache/pacman/pkg \; ; \
-  sudo rm /create_user.sh; \
   sudo rm -rf /usr/src/mesamild; \
   sudo chmod +x /*.sh
 
