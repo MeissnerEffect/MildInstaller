@@ -34,7 +34,7 @@ RUN \
   echo -e '[mesa-git]\nServer = http://pkgbuild.com/~lcarlier/$repo/$arch\nSigLevel = Never\n' >>  /tmp/pac_up; \
   cat /etc/pacman.conf | tail -$((nlines-nupper))  >>  /tmp/pac_up; \
   mv /tmp/pac_up /etc/pacman.conf;  \
-  pacman -Sqyy; \
+  pacman -Sqyyu; \
   pacman -Sq --needed --noconfirm git $(pacman -Ss base-devel | grep base-devel | tr "/" " " | awk '{print $2}' | grep -v gcc | tr '\n' ' '); \
   pacman -Q | grep -q gcc-multilib || (yes | LC_ALL=C sudo pacman -Sq  gcc-multilib); \
   . /launcher/settings.sh; \
@@ -105,7 +105,6 @@ RUN \
   yes | LC_ALL=C sudo pacman -U $PKG --force ;  \
   sudo find /var/cache/pacman/pkg -name "*mesa-git*" -delete ; \
   sudo find /usr/src/mesamild/lib32-mesa-git /usr/src/mesamild/mesa-git  -name "*.pkg.tar.xz" -exec cp {} /var/cache/pacman/pkg \; ; \
-  sudo rm -rf /usr/src/mesamild; \
   sudo chmod +x /launcher/*.sh
 
 CMD cd ; bash  

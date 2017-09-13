@@ -2,7 +2,7 @@
 
 # Cemu is installed in WINEPREFIX=~/drive_c/cemu
 
-. /template.sh
+. /launcher/settings.sh
 
 export WINEARCH="win64" 
 export WINEPREFIX="$HOME/.cemu_prefix"

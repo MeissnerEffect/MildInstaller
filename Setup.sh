@@ -8,7 +8,7 @@ INAME=kazhed/gaming-container
 MESA_STABLE=17.2
 
 # Which directories have to be available inside container
-VISIBLE_DIRECTORIES=( $HOME )
+VISIBLE_DIRECTORIES=( "$HOME" )
 
 # Select which device drivers will be used in the container
 JOYSTICK="/dev/input/js0"
@@ -44,8 +44,9 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
 
 declare -A INSTALLER_SETUP=(
     ["--help"]="This help"
+    ["--dump-dl"]="Dump ressources downloaded"
 #    ["--trim"]="Trim images"
-#    ["--update"]="Destroy previous image and restart build process"
+    ["--update"]="Destroy previous image and restart build process"
 #    ["--prune"]="Remove every containers and images from this application"
 )
 
@@ -167,20 +168,20 @@ function container_create {
     docker create --entrypoint /usr/bin/bash $PARAMETERS 
 }
 
-function container_createapp {
-    
-    APP=$1
-    echo "Creating container for application $APP"
-    PARAMETERS=$(container_setupparams $APP)
-    echo "docker create $PARAMETERS"
-    docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS 
-    # ${APP_BASEDIR}${APP}.sh
-}
+#function container_createapp {
+#    
+#    APP=$1
+#    echo "Creating container for application $APP"
+#    PARAMETERS=$(container_setupparams $APP)
+#    echo "docker create $PARAMETERS"
+#    docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS  
+#"${APP_BASEDIR}/${APP}.sh"
+#}
 
-function container_run {
+function container_runinstall {
 
     PARAMETERS=$(container_setupparams)
-    echo "docker run $PARAMETERS"
+    echo "docker run --entrypoint /usr/bin/bash $PARAMETERS \"$APP_BASEDIR/install.sh\""
     docker run --entrypoint /usr/bin/bash $PARAMETERS "$APP_BASEDIR/install.sh"
     
 }
@@ -222,24 +223,19 @@ function container_exec {
 }
 
 function container_setup {
-    echo "Creating containers"
-    OLD_CNAME=$CNAME
-    echo ${APP_NAMES[*]}
-    #for app in ${APP_NAMES[*]}; do
-    for app in "cemu"; do
-      CNAME="${CNAME}${app}"
-      container_exists && container_destroy; 
-      CNAME=$OLD_CNAME
-      container_createapp $app;
-    done
+    echo "Creating containeri, and launching install"
+    container_exists && container_destroy; 
+    container_runinstall;
 }
 
 function container_setupparams {
 
     # Setup bindings (things to be passed to the container)
     NAME_SUFFIX=$1
+    [ -z "$NAME_SUFFIX" ] && NAME=$CNAME || NAME=${CNAME}-${NAME_SUFFIX}
+
     BINDINGS=" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
-    BINDINGS+=" --name ${CNAME}-${NAME_SUFFIX} -h $HNAME"   
+    BINDINGS+=" --name ${CNAME} -h $HNAME"   
     for directory in ${VISIBLE_DIRECTORIES[*]};
     do
         BINDINGS+=" --volume=${directory}:${directory}:rw";
@@ -266,14 +262,36 @@ function image_exists {
 }
 
 
-function image_update {
-    docker container ls  --all | grep $INAME
-
-    container_exists && (
+function container_dumpdl {
+    
+    image_exists||(
+    echo "Image doesn't exist - will not dump data"; 
+    exit -1 )
+    
+    CRID=$(docker container ls  --all |grep $INAME |head -1 |awk '{print $1}')
+    
+    [ -z "$CRID" ] || 
+    (
         echo "Extracting files from container";
         [ -d preload/var/cache/pacman ] || mkdir -p preload/var/cache/pacman
-        docker cp  ${CNAME}:/var/cache/pacman/pkg preload/var/cache/pacman;
+        [ -d preload/usr/src/mesamild/mesa ] || mkdir -p preload/usr/src/mesamild/mesa
+        docker cp ${CRID}:/var/cache/pacman/pkg preload/var/cache/pacman;
+        docker cp ${CRID}:/usr/src/mesamild/mesa  preload/usr/src/mesamild
     )
+}
+
+function image_update {
+
+    container_dumpdl
+    [ -d preload/usr/src/mesamild/mesa ] && (
+        echo "Updating mesa"
+        cd preload/usr/src/mesamild/mesa;
+        git pull origin;
+        cd ../../../../../
+        )
+    container_exists && container_destroy
+    image_exists && docker rmi -f $INAME
+
 }
 
 
@@ -305,20 +323,22 @@ function cmdline_parse {
     EN_GALLIUM=""
     EN_DRI=1
     FP=""
+    #mettre les references
+    declare -n rAPP_NAMES=APP_NAMES
 
   
     for program_arg in ${INPARMS}; do
         case $program_arg in
         --steam)
         STEAM=0
-        APP_NAMES+=( "steam.sh" )
+        rAPP_NAMES+=( "steam.sh" )
         ;;
         --wine-steam)
         WINE_STEAM=0
         ;;
         --cemu*)
         CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
-        APP_NAMES+=( "cemu.sh" )
+        rAPP_NAMES+=( "cemu.sh" )
         ;;
         --dolphin)
         DOLPHIN=0
@@ -371,14 +391,7 @@ function cmdline_parse {
         --bleeding-edge)
         BE=1
         ;;
-        --add-dir=*)
-        directory=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
-        VISIBLE_DIRECTORIES+=( "$directory" )
-        ;;
-        --add-device=*)
-        device=$(echo $program_arg | sed s/=/\ / | awk '{ $1=""; print }')
-        DEVICE_DRIVERS+=( "$device" )
-        ;;
+
         *) OUTPARMS+="$program_arg "
         ;;
         esac
@@ -477,12 +490,38 @@ function installscript_generate {
   ) > $PLDAPP_BASEDIR/install.sh
 }
 
+ARGS=$@
+echo "$ARGS" > "$PLDAPP_BASEDIR/build_flags"
+
 ## Demarrage
 [ "$1" == "--help" ]&&usage_show;
-[ "$1" == "--update" ]&&image_update;
+[ "$1" == "--dump-dl" ]&& (container_dumpdl;exit 0)
+[ "$1" == "--update" ]&& ( 
+        image_update
+    ) 
+    
 
-# Interception des parametres
-ARGS=$@
+# Interception des parametres pour container
+NEWARGS=""
+
+    for carg in $ARGS; do
+    case $carg in
+        --add-dir=*)
+        directory=$(echo $carg | sed s/=/\ / | awk '{ $1=""; print }')
+        echo "Adding directory $directory"
+        VISIBLE_DIRECTORIES+=( "$directory" )
+        ;;
+        --add-device=*)
+        device=$(echo $carg | sed s/=/\ / | awk '{ $1=""; print }')
+        echo "Adding device $device"
+        DEVICE_DRIVERS+=( "$device" )
+        ;;
+        *)
+           NEWARGS+=" $carg"
+    esac; done
+
+ARGS=$NEWARGS
+
 NEWARGS="$(cmdline_parse)"
 ARGS=$NEWARGS
 
