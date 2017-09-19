@@ -4,9 +4,10 @@
 
 . /launcher/settings.sh
 
-export WINEARCH="win64" 
+export WINEARCH=win64 
 export WINEPREFIX="$HOME/.cemu_prefix"
-export WINEDEBUG="-all"
+export WINEDEBUG=-all
+export WINEDLLOVERRIDES="mscoree=d;mshtml=d" 
 
 APPDIR=$WINEPREFIX/drive_c/cemu
 EXEC=$APPDIR/latest/Cemu.exe
@@ -41,7 +42,8 @@ Type=Application
 Categories=WineCNT;"
 
 function setup() {
-  WINEARCH=$WINEARCH WINEPREFIX=$WINEPREFIX wineboot -u
+  wineboot -u
+  winetricks -q vcrun2015  corefonts
   echo curl http://cemu.info/releases/${cemu_version}.zip  
   curl http://cemu.info/releases/${cemu_version}.zip > $HOME/cemu.zip; 
   mkdir -p $APPDIR
@@ -61,7 +63,7 @@ function setup() {
 }
 
 function run {
-WINEDEBUG="-all" MESA_GL_VERSION_OVERRIDE=4.5COMPAT MESA_GLSL_VERSION_OVERRIDE=450 MESA_RENDERER_OVERRIDE="Mesa" MESA_VENDOR_OVERRIDE="X.Org" wine64 $EXEC 
+mesa_glthread=true force_glsl_extensions_warn=true allow_higher_compat_version=true WINEDEBUG="-all" MESA_GL_VERSION_OVERRIDE=4.5COMPAT MESA_GLSL_VERSION_OVERRIDE=450 MESA_RENDERER_OVERRIDE="Mesa" MESA_VENDOR_OVERRIDE="X.Org" wine64 $EXEC 
 }
 
 [ -f $EXEC ]||setup

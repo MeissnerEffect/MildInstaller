@@ -223,7 +223,7 @@ function container_exec {
 }
 
 function container_setup {
-    echo "Creating containeri, and launching install"
+    echo "Creating container, and launching install"
     container_exists && container_destroy; 
     container_runinstall;
 }
@@ -495,7 +495,7 @@ echo "$ARGS" > "$PLDAPP_BASEDIR/build_flags"
 
 ## Demarrage
 [ "$1" == "--help" ]&&usage_show;
-[ "$1" == "--dump-dl" ]&& (container_dumpdl;exit 0)
+[ "$1" == "--dump-dl" ]&& container_dumpdl && exit 0
 [ "$1" == "--update" ]&& ( 
         image_update
     ) 
