@@ -1,11 +1,15 @@
 #/usr/bin/bash
 
+# Todo ajouter les metas durant build pour lancer l'update
+
 # Name of the container and of the host
 CNAME=gaming-container
 CIDFILE=${CNAME}.cid
 HNAME=$CNAME
 INAME=kazhed/gaming-container
 MESA_STABLE=17.2
+# Set default optimisation to -O3 -march=native
+OPTIMISE_DEFAULT=7
 
 # Which directories have to be available inside container
 VISIBLE_DIRECTORIES=( "$HOME" )
@@ -41,54 +45,50 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
   cya=$(tput setaf 6);bla=$(tput setaf 7);sms=$(tput smso)
   rms=$(tput rmso);rei=$(tput sgr0)
 
-
-declare -A INSTALLER_SETUP=(
-    ["--help"]="This help"
-    ["--dump-dl"]="Dump ressources downloaded"
-#    ["--trim"]="Trim images"
-    ["--update"]="Destroy previous image and restart build process"
-#    ["--prune"]="Remove every containers and images from this application"
+declare -A MAIN_COMMAND=(
+    ["build"]="Build image"
+    ["configure"]="Configure container"
+    ["start"]="Start/Restart container"
+    ["update"]="Update image"
+    ["prune"]="Remove everything"
+    ["dump"]="Dump packages"
+    ["help"]="This help"
 )
 
-declare -A COMPILER_SETUP=(
-    ["--optimise"]="Use safe compiler optimisation"
-    ["--optimise-harder"]="Use unsafe compiler optimisation"
-    ["--use-lto"]="Use link time optimisation (largely increase building time)"
+declare -A COMPILER_OPTIONS=(
+    ["--optimise=X"]="Use optimisation level 0<=X<=15"
     ["--clang"]="Build using CLANG"
+)    
+
+declare -A IMAGE_OPTIONS=(
+    ["--experimental=wine,mesa,llvm"]="Use experimental version of packages [empty=all]"
 )
 
-declare -A MESA_SETUP=(
-    ["--vulkan"]="Enable vulkan (intel or radeon)"
-    ["--radeon"]="Enable radeon support"
-    ["--radeon-legacy"]="Enable legacy radeon support (PRE GCN)"
+declare -A DRIVER_OPTIONS=(
+    ["--nine"]="Enable mesa and wine gallium-nine support"
+    ["--intel"]="Enable modern intel support"
+    ["--legacy=intel,radeon"]="Enable legacy radeon and intel drivers"
     ["--nouveau"]="Enable nouveau support"
-    ["--intel"]="Enable intel support"
-    ["--intel-legacy"]="Enable legacy intel support"
+    ["--radeon"]="Enable radeon support"
+    ["--vulkan"]="Enable vulkan with intel or radeon"
+    
 )
 
-declare -A ANTERGOS_SETUP=(
-#    ["--bleeding-edge"]="Use bleeding edge version of packages, (for VEGA)"
-#    ["--mesa-stable"]="Use stable version of mesa"
-    ["--wine-staging"]="Install wine staging instead of wine"
-    ["--wine-staging-nine"]="Install wine-staging-nine instead of wine"
-#    ["--kerberizer-llvm"]="Use LLVM from Kerberizer's repository (for RPCS3)"
-)
-
-declare -A IMAGE_SETUP=(
+declare -A APPLICATIONS=(
 #    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
     ["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
 #    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
 #    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
 #    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
     ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
-    ["--wine-steam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
+    ["--wsteam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
 )
 
 declare -A CONTAINER_SETUP=(
     ["--add-dir=X"]="Add the X directory in the container"
     ["--add-device=X"]="Add the char device X in the container"
 #    ["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
-#    ["--max-ram=X"]="Hard memory limit"
+#    ["--max-ram=X"]="Hard memory limit"S
 #    ["--max-swap=X,Y"]="Use max swap and define swapiness"
 )
 
@@ -140,18 +140,17 @@ function usage_show () {
 
     echo "Prepare a new container that includes MesaMild"
     (
-        echo "> INSTALLER OPTIONS";     usage_generatetext INSTALLER_SETUP; echo "@";
-        echo "> APPLICATIONS OPTIONS";  usage_generatetext IMAGE_SETUP;     echo "@";
-        echo "> CONTAINER OPTIONS";     usage_generatetext CONTAINER_SETUP; echo "@"
-        echo "> OS OPTIONS";            usage_generatetext ANTERGOS_SETUP;  echo "@";
-        echo "> MESA OPTIONS";          usage_generatetext MESA_SETUP;      echo "@";
-        echo "> COMPILER OPTIONS";      usage_generatetext COMPILER_SETUP;  echo "@";
+        echo "> COMMAND";     usage_generatetext MAIN_COMMAND; echo "@";
+        echo "> DRIVER OPTIONS";  usage_generatetext DRIVER_OPTIONS;     echo "@";
+        echo "> CONTAINER RUNTIME OPTIONS";     usage_generatetext CONTAINER_SETUP; echo "@"
+        echo "> APPLICATIONS TO INSTALL";          usage_generatetext APPLICATIONS;      echo "@";
+        echo "> COMPILER OPTIONS / TUNING";      usage_generatetext COMPILER_OPTIONS;  echo "@";
+        echo "> IMAGE OPTIONS";            usage_generatetext IMAGE_OPTIONS;  echo "@";
     )  | column  -t -s '@'|cat|
-    sed -e "s/>\ INS/$rou\ INS/g" |
     sed -e "s/>\ COM/$ble\ COM/g" |
-    sed -e "s/>\ M/$ver\ M/g"     |
-    sed -e "s/>\ OS/$mar\ OS/g"   |
-    sed -e "s/>\ AP/$vio\ AP/g"   |
+    sed -e "s/>\ DRIV/$ver\ DRIV/g"     |
+    sed -e "s/>\ APP/$mar\ APP/g"   |
+    sed -e "s/>\ IMA/$vio\ IMA/g"   |
     sed -e "s/>\ CON/$cya\ CON/g" |
     sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
     echo "$rei"
@@ -261,6 +260,10 @@ function image_exists {
     docker image ls -a ${INAME}:latest  |grep -q latest
 }
 
+function image_destroy {
+
+    image_exists && docker image rm -f ${INAME}:latest 
+}
 
 function container_dumpdl {
     
@@ -280,7 +283,7 @@ function container_dumpdl {
     )
 }
 
-function image_update {
+function maincmd_update {
 
     container_dumpdl
     [ -d preload/usr/src/mesamild/mesa ] && (
@@ -290,12 +293,126 @@ function image_update {
         cd ../../../../../
         )
     container_exists && container_destroy
-    image_exists && docker rmi -f $INAME
-
+    image_destroy
+    
 }
 
+function main {
 
-function cmdline_parse {
+    OUTSCRIPT="$PLDAPP_BASEDIR/settings.sh"
+    declare -n rVISIBLE_DIRECTORIES=VISIBLE_DIRECTORIES
+    declare -n rDEVICE_DRIVERS=DEVICE_DRIVERS
+    
+   [ -z "$PARAMS" ] && ( echo "* Error no command specified *"; usage_show )
+ 
+    main_command=""
+    
+
+    for program_arg in ${PARAMS}; do
+        if [ ${program_arg:0:2} = '--' ]; then
+            PARG=${program_arg:2}
+            P=$(echo $PARG|cut -d'=' -f1); V=1
+            [ ${#P} -ne ${#PARG} ] && V=$(echo $PARG|cut -d'=' -f2)
+       
+            case $P in 
+                add-dir) rVISIBLE_DIRECTORIES+="$V";;
+                add-device) rDEVICE_DRIVERS+="$V";;
+                *) eval "$P=$V";;
+            esac
+        else
+            main_command="$program_arg"
+        fi
+        
+        
+    done
+    
+    
+    case $main_command in 
+
+    help) usage_show
+        ;;
+
+    build)    
+    mesa_version=$MESA_STABLE
+    optimise=$OPTIMISE_DEFAULT
+    gallium_drivers="swrast";
+    dri_drivers="''"
+    
+    
+    (
+    [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" ; mesa_version="master"
+    [ -n "$experimental" ]      && echo $experimental | grep -q "wine" && wine="wine-staging"
+    [ -n "$experimental" ]      && echo $experimental | grep -q "llvm" && llvm="kerberizer" 
+                                
+    
+    [ -n "$clang" ]             && ( 
+                                echo CC=/usr/bin/clang
+                                echo CXX=/usr/bin/clang++
+                                )
+    
+    [ -n "$optimise" ]          && (
+                                # Compiler flags
+                                native=0;lto=0;opt=0;
+                                let "lto = (optimise & 8) == 8"
+                                let "native = (optimise & 4) == 4"
+                                let "opt = optimise & 3"
+                                cflags="";ldflags="-Wl,--sort-common -Wl,-z,now"
+                                [ $native -eq 1 ]   && cflags+="-march=native"
+                                [ $lto -eq 1 ]      && cflags+=" -flto" && ldflags+=" -Wl,-flto"
+                                [ $opt -gt 0 ]      && cflags+=" -O${opt}" && ldflags+=" -Wl,-O${opt}"
+                                
+                                echo "CFLAGS='$cflags'"
+                                echo "CXXFLAGS='$cflags'"
+                                echo "LDFLAGS='$ldflags'"
+                                
+                                )
+    [ -n "$intel" ]             && dri_drivers+="i965" && vulkan="intel" 
+    [ -n "$radeon" ]            && gallium_drivers+=" radeonsi " && vulkan+=" radeon" 
+    [ -n "$nouveau" ]           && gallium_drivers+=" nouveau " 
+    [ -z "$vulkan" ]            && vulkan="''"
+    [ -n "$legacy" ]            &&  echo $legacy | grep -q "radeon" && gallium_drivers+=" r600";
+    [ -n "$legacy" ]            &&  echo $legacy | grep -q "intel" && dri_drivers+=" i915";
+                                
+    
+    [ -n "$nine" ]              &&  wine_flavor="wine-staging-nine";     
+    [ "x$wine" == "xstaging" ]  && echo "Using wine staging"
+    [ "x$wine" == "xstaging-nine" ] && echo "Using wine staging with nine state tracker"
+    
+    
+    echo "--dri_drivers=$dri_drivers" | tr ' ' ',' | sed -e "s/=,/=/" -e "s/,$//" -e "s/,,/,/"
+    echo "--gallium_drivers=$gallium_drivers" | tr ' ' ',' | sed -e "s/=,/=/" -e "s/,$//" -e "s/,,/,/g" 
+    
+    [ -n "$vulkan" ] && echo "--vulkan_drivers=$vulkan"| tr ' ' ',' | sed -e "s/=,/=/" -e "s/,$//" -e "s/,,/,/"  
+    
+    echo "WINE_FLAVOR=$wine"
+    echo "MESA=$mesa_version"
+    )
+        #> $OUTSCRIPT
+        maincmd_build
+    ;;
+    configure)
+        maincmd_configure
+    ;;
+    start)
+        maincmd_startorrestart
+    ;;
+    update)
+        maincmd_update
+    ;;
+    prune)
+        maincmd_prune
+    ;;
+    dump)
+        maincmd_dump
+    ;;
+    *)
+        usage_show
+    ;;
+    esac
+        
+}
+
+function cmdline_parse_old {
 # Reformule les options avant de lancer l'analyse des parametres a envoyer au daemon.
 
     OUTSCRIPT="$PLDAPP_BASEDIR/settings.sh"
@@ -490,7 +607,35 @@ function installscript_generate {
   ) > $PLDAPP_BASEDIR/install.sh
 }
 
+ 
+ function maincmd_build {
+  image_exists && echo "Image already exits, either update it, or clean it with '$0 update' or  '$0 prune'"
+ }
+ 
+ function maincmd_prune {
+ image_exists || (echo "Nothing to do" ; exit 0)
+ 
+ container_exists &&  echo "Destroying containers"  && container_destroy
+ echo "Destroying image"
+ 
+ image_destroy
+ 
+ 
+ 
+ 
+}
+ 
+ 
+ 
+PARAMS=$@
+main
+exit
+
 ARGS=$@
+
+
+
+
 echo "$ARGS" > "$PLDAPP_BASEDIR/build_flags"
 
 ## Demarrage
