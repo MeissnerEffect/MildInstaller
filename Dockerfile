@@ -8,6 +8,17 @@ ARG vulkan_drivers
 ARG mesa_repository
 ARG mesa_branch
 ARG mesa_rollback 
+
+
+# Metadate to generate an update command
+LABEL org.kazhed.mild.buildcmd.gallium_drivers=$gallium_drivers
+LABEL org.kazhed.mild.buildcmd.dri_drivers=$dri_drivers
+LABEL org.kazhed.mild.buildcmd.vulkan_drivers=$vulkan_drivers
+LABEL org.kazhed.mild.buildcmd.unstable_products=$unstable_products
+LABEL org.kazhed.mild.username=$MY_USERNAME
+
+
+# Legacy values 
 ENV MY_USERNAME=${MY_USERNAME} \
     mesa_repository=${mesa_repository:-'https://github.com/mikakev1/mesa_mild_compatibility.git'} \
     mesa_branch=${mesa_branch:-master} \
@@ -67,7 +78,7 @@ RUN \
   pixman pkg-config popt psmisc pyalpm pygobject2-devel pygtk python python-pyelftools python2 python2-cairo python2-gobject2  \
   randrproto readline recordproto reflector renderproto rsync samba sed serf shadow shared-mime-info sqlite subversion sudo  \
   sysfsutils systemd systemd-sysvcompat tar tcl texinfo tzdata unzip usbutils util-linux v4l-utils videoproto wayland  \
-  wayland-protocols wget which $WINE_FLAVOR wine-mono winetricks xcb-proto xdelta3 xextproto xf86driproto \
+  wayland-protocols wget which $WINE_VERSION wine-mono winetricks xcb-proto xdelta3 xextproto xf86driproto \
   xf86vidmodeproto xineramaproto xkeyboard-config xorg-xdriinfo xorg-xmessage xproto xz yajl yaourt zlib ; \
   echo "CFLAGS=\"$CFLAGS\"" >> /etc/makepkg.conf; \
   echo "CXXFLAGS=\"$CXXFLAGS\"" >> /etc/makepkg.conf; \
