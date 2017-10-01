@@ -1,8 +1,11 @@
 <b>YOU NEED DOCKER, and to be able to run docker build as a normal user (check your distribution specifics)</b>
 
 <emphase> Pay attention to the differences between an image and a container 
+
  Container will be destroyed everytime after use, unless commited 
- Image will not update unless the whole process is restarted </emphase>
+
+ Image will not update unless the whole process is restarted 
+ </emphase>
 
 <h3> Setup </h3>
 <div>
@@ -101,19 +104,22 @@ Prepare a new container that includes MesaMild
 
 <li>  Build Image </li>
 <strong> Build options, that appears in blue, can be used only once, so set them right at the beginning (or you'll need to restart everything from the beginning) </strong> 
+<ul>
+<li>
 <p> Example with strong optimisation that includes support for intel, radeon, nvidia and vulkan drivers [ container won't run on some X86-64 ]  </p>
 <code>
   ./kazhedctl build
-</code>
-<p> Example with strongest optimisations for a radeon graphic card (GCN+) [ container won't run on some x86-64 ] </p>
+</code></li>
+
+<li><p> Example with strongest optimisations for a radeon graphic card (GCN+) [ container won't run on some x86-64 ] </p>
 <code>
   ./kazhedctl build --radeon --vukan --optlevel=15 
-</code>
-<p> Example with generic optimisation for an intel graphic card and wine staging, [ container will run on any  X86-64 ] </p>
+</code></li>
+<li><p> Example with generic optimisation for an intel graphic card and wine staging, [ container will run on any  X86-64 ] </p>
 <code>
   ./kazhedctl build --intel --vukan --optlevel=2 --experimental=wine
-</code>
-
+</code></li>
+</ul>
 <li>  Install product (please consider helping developpers of opensource software) </li>
 <strong> You can install but you can't remove unless you start from the beginning </strong> 
 <p> To install dolphin, citra, rpcs3, decaf (check the list of options by using help command)
