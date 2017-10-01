@@ -27,7 +27,7 @@ SFLAG="$DIRECTORY/cemu_latest/graphical_setup_done"
 function graphical_setup() {
     echo "Running graphical setup for $APP"
     wineboot -u
-    winetricks vc2015 corefonts
+    winetricks vcrun2015 corefonts
     touch $SFLAG
  }
 

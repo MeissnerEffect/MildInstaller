@@ -501,7 +501,8 @@ function maincmd_install {
  echo $parameters | grep -q install_rpcs3 &&  maincmd_install_rpcs3
  echo $parameters | grep -q install_steam &&  maincmd_install_citra
  echo $parameters | grep -q install_rpcs3 &&  maincmd_install_dolphin
- echo $parameters | grep -q install_rpcs3 &&  maincmd_install_decaf
+ echo $parameters | grep -q install_decaf &&  maincmd_install_decaf
+ echo $parameters | grep -q install_cemu &&  maincmd_install_cemu
  
 
 
@@ -554,8 +555,9 @@ function maincmd_install_rpcs3 {
 
 function maincmd_install_cemu {
 
+  # This is a graphical setup 
     echo "Installing Cemu"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh"
+    docker run -v $HOME:$HOME:rw -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh"
     echo "Commiting image"
     docker commit gaming-container kazhed/gaming-container
     echo "Done"
