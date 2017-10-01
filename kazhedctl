@@ -487,15 +487,10 @@ function maincmd_uphelper {
  
  function maincmd_prune {
     
-    image_exists $INAME || (echo "Nothing to do" ; exit 0)
+    #image_exists $INAME || (echo "Nothing to do" ; exit 0)
+    docker images | grep $INAME |awk '{print "docker rmi "$3}' | bash
+    docker images | grep $CNAME |awk '{print "docker rmi "$3}' | bash   
  
-    for container in $(docker ps --all | grep $INAME | awk '{print $1}'); do
-        container_destroy $container
-    done
- 
-    for image in $(docker image ls | grep $INAME | awk '{print$1":"$2}'); do
-        image_destroy $image;
-    done
 }
  
 function maincmd_configure {
@@ -543,17 +538,17 @@ function maincmd_install {
      container_destroy $CNAME
      echo "Done"
  }
-# 
-# function maincmd_install_citra {
-# 
-#     echo "Installing Citra"
-#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
-#     echo "Commiting image"
-#     docker commit $CNAME ${INAME}:citra
-#     container_destroy $CNAME
-#     echo "Done"
-# }
-# 
+ 
+ function maincmd_install_citra {
+ 
+     echo "Installing Citra"
+     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
+     echo "Commiting image"
+     docker commit $CNAME ${INAME}:citra
+     container_destroy $CNAME
+     echo "Done"
+ }
+ 
 # function maincmd_install_decaf {
 # 
 #     echo "Installing Decaf"

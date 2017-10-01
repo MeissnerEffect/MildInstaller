@@ -47,7 +47,7 @@ function text_setup() {
   sudo chown $MY_USERNAME /usr/src
   cd /usr/src/
   git clone --recursive https://github.com/citra-emu/citra.git
-  cd /usr/src/dolphin
+  cd /usr/src/citra
   NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
   echo MAKEFLAGS="-j$NCPUS"
   mkdir build && cd build
