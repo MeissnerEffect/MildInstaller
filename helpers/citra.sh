@@ -4,9 +4,9 @@ BASE_DIR=/launcher
 CONF_FILE=$BASE_DIR/settings.sh
 . $CONF_FILE
 
-APP=RPCS3
+APP=CITRA
 APPDIR=$HOME/.local/$APP
-EXEC="/usr/local/bin/rpcs3"
+EXEC="/usr/local/bin/citra-qt"
 
 DECFG="[Desktop Entry]
 Name=$APP
@@ -16,27 +16,21 @@ Terminal=false
 Icon=$AppIcon
 Type=Application
 Categories=CNT;"
-COMPATIBILITY_MESSAGE="Rpcs3 needs an image built with experimental LLVM [--experimental=llvm]"
+
+COMPATIBILITY_MESSAGE="$APP requires nothing special"
 
 DEPENDENCIES="qt5 sdl2 cmake libcurl-compat"
 
 
-function install_dependencies () { 
-  pacman -S --needed --noconfirm $DEPENDENCIES
+function install_dependencies () {
+  pacman -S --noconfirm $DEPENDENCIES
 
 }
+
 
 function supported {
   return 0
  
-}
-
-
-function patch() {
-git remote add https://github.com/Zangetsu38/rpcs3.git Zangetsu38
-git fetch --all
-git merge Zangetsu38/llvm50
-
 }
 
 function check_compatibility() {
@@ -54,12 +48,12 @@ function text_setup() {
   install_dependencies
   sudo chown $USER /usr/src
   cd /usr/src/
-  git clone --recursive https://github.com/RPCS3/rpcs3.git
-  cd /usr/src/rpcs3
+  git clone --recursive https://github.com/citra-emu/citra.git
+  cd /usr/src/citra
   NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
   echo MAKEFLAGS="-j$NCPUS"
-  cmake . -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release
-  make GitVersion
+  mkdir build && cd build
+  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release -DUSE_SYSTEM_CURL=1
   make $MAKFLAGS 
   sudo make install
   exit 0

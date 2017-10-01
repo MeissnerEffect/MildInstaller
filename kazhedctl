@@ -76,11 +76,11 @@ declare -A DRIVER_OPTIONS=(
 )
 
 declare -A APPLICATIONS=(
-#    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
+    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
     ["--cemu"]="Install latest public version of CEMU @ (http://cemu.info)"
     ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
-#    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
-#    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
+    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
+    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
     ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
 #    ["--wsteam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
 )

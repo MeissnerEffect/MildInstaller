@@ -9,7 +9,7 @@ function reinstall_mesa() {
 }
 
 function setup() {
-  sudo pacman -Syu steam --noconfirm
+  sudo pacman -Sy steam --noconfirm
   reinstall_mesa
   exit 0
 }
