@@ -8,6 +8,7 @@ CIDFILE=${CNAME}.cid
 HNAME=$CNAME
 INAME=kazhed/gaming-container
 MESA_STABLE=17.2
+
 # Set default optimisation to -O3 -march=native
 OPTIMISE_DEFAULT=7
 
@@ -73,16 +74,15 @@ declare -A DRIVER_OPTIONS=(
     ["--nouveau"]="Enable nouveau support"
     ["--radeon"]="Enable radeon support"
     ["--vulkan"]="Enable vulkan with intel or radeon"
-    
 )
 
 declare -A APPLICATIONS=(
-    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
+#    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
     ["--cemu"]="Install latest public version of CEMU @ (http://cemu.info)"
-    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
-    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
-    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
-    ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
+#    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
+#    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
+#    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
+#    ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
 #    ["--wsteam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
 )
 
@@ -117,7 +117,6 @@ function account_generate {
     echo "useradd -o -b / -d $HOME -m -G ${CUSERGROUP} -U -u $CUID $CUSERNAME" >> $OUTFILE
 }
 
-
 function usage_generatetext {
     
     keys=""
@@ -136,7 +135,7 @@ function usage_generatetext {
   
 }
 
-function usage_show () {
+function usage_show {
     
     echo "Usage : $(basename $0)"
 
@@ -159,6 +158,7 @@ function usage_show () {
     sed -e "s/\*\*\(b[-a-zA-Z0-9.,=]*\)/$ble$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\(c[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
     sed -e "s/\*\*\(i[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
+    sed -e "s/\*\*\(s[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\([-a-zA-Z0-9.,=]*\)/$rei$sms\1${rms}/g" -e "s/>/\ /g" 
     echo "$rei"
 
@@ -167,71 +167,86 @@ function usage_show () {
 
 ## CONTAINER
 function container_create {
-    
-    echo "Creating container"
-    PARAMETERS=$(container_setupparams)
-    echo "docker create $PARAMETERS"
+    container_name=$1
+    shift
+    image_name=$1
+    shift
+    PARAMETERS="$(container_setupparams $container_name $image_name) $@"
+    echo "Creating container $container_name above $image_name, using $PARAMETERS"
     docker create --entrypoint /usr/bin/bash $PARAMETERS 
 }
 
-function container_runinstall {
-
-    PARAMETERS=$(container_setupparams)
-    echo "docker run --entrypoint /usr/bin/bash $PARAMETERS \"$APP_BASEDIR/install.sh\""
-    docker run --entrypoint /usr/bin/bash $PARAMETERS "$APP_BASEDIR/install.sh"
-    
-}
-
 function container_commit {
-    docker commit $CNAME $INAME
+    container_name=$1
+    shift
+    image_name=$1
+    docker commit $container_name $image_name
 }
 
 function container_exists {
-    docker container ls --all |grep -q $CNAME
-
+    container_name=$1
+    docker container ls --all |grep -q $container_name
 }
 
 function container_stop {
-    docker stop $CNAME
+    container_name=$1
+    docker stop $container_name
 }
 
 function container_destroy {
-    container_isrunning && container_stop && container_wait 
-    docker rm $CNAME
-
+    container_name=$1
+    container_isrunning $container_name  && container_stop $container_name && container_wait $container_name 
+    docker rm $container_name
 }
 
 function container_isrunning {
-    docker ps | grep -q $INAME
+    image_name=$1
+    docker ps | grep -q $image_name
 }
 
 function container_wait {
-    docker wait $CNAME
+    container_name=$1
+    docker wait $container_name
+}
+function container_start {
+    container_name=$1
+    docker start $container_name
 }
 
-function container_start {
-    docker start $CNAME
+function container_restart {
+    container_name=$1
+    docker restart $container_name
+}
+
+function container_switch_on {
+    docker restart $container_name
 }
 
 function container_exec {
-    CMD=$1
-    docker exec $CNAME $CMD
+    container_name=$1
+    shift
+    command=$@
+    docker exec $container_name $command
 }
 
 function container_setup {
     echo "Creating container, and launching install"
-    container_exists && container_destroy; 
-    container_runinstall;
+    container_name=$1
+    container_exists $container_name && container_destroy $container_name; 
+    container_create $container_name;
 }
 
 function container_setupparams {
 
+    container_name=$1
+    shift
+    image_name=$1
+    
     # Setup bindings (things to be passed to the container)
-    NAME_SUFFIX=$1
-    [ -z "$NAME_SUFFIX" ] && NAME=$CNAME || NAME=${CNAME}-${NAME_SUFFIX}
 
     BINDINGS=" -e XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR  -e DISPLAY=$DISPLAY -e XAUTHORITY=$XAUTH"
-    BINDINGS+=" --name ${CNAME} -h $HNAME"   
+    
+    BINDINGS+=" --name ${container_name} -h $HNAME"   
     for directory in ${VISIBLE_DIRECTORIES[*]};
     do
         BINDINGS+=" --volume=${directory}:${directory}:rw";
@@ -247,24 +262,25 @@ function container_setupparams {
         BINDINGS+=" --volume=${socket}:${socket}:rw";
     done
   
-    BINDINGS+=" --privileged -it $INAME"
+    BINDINGS+=" --privileged -it $image_name"
 
     echo "$BINDINGS"
 }
 
 
 function image_exists {
-    docker image ls -a ${INAME}:latest  |grep -q latest
+    image_name=$1
+    docker image ls -a ${image_name}  |grep -q ${image_name}
 }
 
 function image_destroy {
-
-    image_exists && docker image rm -f ${INAME}:latest 
+    image_name=$1
+    image_exists && docker image rm -f $image_name
 }
 
 function container_dumpdl {
-    
-    image_exists||(
+    #image_name=$1
+    image_exists $INAME||(
     echo "Image doesn't exist - will not dump data"; 
     exit -1 )
     
@@ -281,24 +297,22 @@ function container_dumpdl {
 }
 
 function maincmd_update {
-
-    container_dumpdl
+    # Create or start a container 
+    container_dumpdl $INAME
     [ -d preload/usr/src/mesamild/mesa ] && (
         echo "Updating mesa"
         cd preload/usr/src/mesamild/mesa;
         git pull origin;
         cd ../../../../../
         )
-    username=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.username\"}}")
-    dri=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.dri_drivers\"}}")
-    gal=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.gallium_drivers\"}}")
-    vul=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.vukan_drivers\"}}")
+    username=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.username\"}}")
+    dri=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.dri_drivers\"}}")
+    gal=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.gallium_drivers\"}}")
+    vul=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.vukan_drivers\"}}")
     command_line=" --build-arg dri_drivers=$dri_drivers --build-arg vulkan_drivers=$vulkan_drivers --build-arg=gallium_drivers=$gallium_drivers --build-arg MY_USERNAME=$username"
 
-    container_exists && container_destroy
-    image_destroy
+    maincmd_prune
     maincmd_build $command_line
-    
 }
 
 function main {
@@ -338,13 +352,9 @@ function main {
         ;;
 
     build)    
-    BUILD_ARGS=""
-    mesa_version=$MESA_STABLE
-    optimise=$OPTIMISE_DEFAULT
-    gallium_drivers="swrast";
-    dri_drivers="''"
-    #vulkan_drivers="''"
-    wine_version=wine
+    BUILD_ARGS="";mesa_version=$MESA_STABLE
+    optimise=$OPTIMISE_DEFAULT;gallium_drivers="swrast";
+    dri_drivers="''";wine_version=wine
     
     [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" ; mesa_version="master"
     [ -n "$experimental" ]      && echo $experimental | grep -q "wine" && wine_version="wine-staging"
@@ -432,6 +442,9 @@ function main {
     prune)
         maincmd_prune
     ;;
+    configure)
+        maincmd_configure
+    ;;
     dump)
         maincmd_dump
     ;;
@@ -446,131 +459,160 @@ function main {
 }
 
 function maincmd_uphelper {
-    image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+    
+    # Charger les helpers dans l'image via de multiples creation / destruction de container 
+    image_exists $INAME || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
     echo "Updating helpers"
     SRC=helpers
 
     tar Ccf $SRC - ../$SRC/ |docker run  -i --name ${CNAME} $INAME sudo tar x --strip-component 1 -C /launcher
     echo "Commiting changes"
-    container_commit
-    container_destroy
+    container_commit $CNAME $INAME
+    container_destroy $CNAME
     docker run --name ${CNAME} $INAME bash
-    container_commit
-    container_destroy
+    container_commit $CNAME $INAME
+    container_destroy $CNAME
 }
 
 
  function maincmd_build {
-  image_exists && echo "Image already exits, either update it, or clean it with '$0 update' or  '$0 prune'"
-  parameters="$@"
-  
-  account_generate
-  
-  echo "Parametres de construction :"
-  echo $parameters
-  
-  docker build --pull -t $INAME  $parameters .
-  
+
+    image_exists $INAME && echo "Image already exits, either update it, or clean it with '$0 update' or  '$0 prune'"
+    parameters="$@"
+    account_generate
+    echo "Parametres de construction :"
+    echo $parameters
+    docker build --pull -t $INAME  $parameters .
  }
  
  function maincmd_prune {
- image_exists || (echo "Nothing to do" ; exit 0)
+    
+    image_exists $INAME || (echo "Nothing to do" ; exit 0)
  
- container_exists &&  echo "Destroying containers"  && container_destroy
- echo "Destroying image"
+    for container in $(docker ps --all | grep $INAME | awk '{print $1}'); do
+        container_destroy $container
+    done
  
- image_destroy
+    for image in $(docker image ls | grep $INAME | awk '{print$1":"$2}'); do
+        image_destroy $image;
+    done
 }
  
 function maincmd_configure {
- image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
- 
- parameters="$@"
-
- socket_setup
- container_setup
+    
+    maincmd_configure_cemu
+    #image_name=$1
+    #shift
+    #image_exists $image_name || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+    #parameters="$(container_setupparams) $@"
+    #socket_setup
+    #container_setup
 }
 
+#TextMode Install
 function maincmd_install {
- image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
-  parameters="$@"
- # Install steam
- echo "Parametres de construction :"
-  
- echo $parameters | grep -q install_steam &&  maincmd_install_steam
- echo $parameters | grep -q install_rpcs3 &&  maincmd_install_rpcs3
- echo $parameters | grep -q install_steam &&  maincmd_install_citra
- echo $parameters | grep -q install_rpcs3 &&  maincmd_install_dolphin
- echo $parameters | grep -q install_decaf &&  maincmd_install_decaf
- echo $parameters | grep -q install_cemu &&  maincmd_install_cemu
  
-
-
+    image_exists $INAME || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+    parameters="$@"
+    
+    
+    echo $parameters | grep -q install_steam      &&  maincmd_install_steam
+    echo $parameters | grep -q install_rpcs3      &&  maincmd_install_rpcs3
+    echo $parameters | grep -q install_citra      &&  maincmd_install_citra
+    echo $parameters | grep -q install_dolphin    &&  maincmd_install_dolphin
+    echo $parameters | grep -q install_decaf      &&  maincmd_install_decaf
+    echo $parameters | grep -q install_cemu       &&  maincmd_install_cemu
 }
 
-function maincmd_install_steam {
-
-    echo "Installing Steam"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/steam.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
-}
-
-function maincmd_install_dolphin {
-
-    echo "Installing Dolphin"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/dolphin.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
-}
-
-function maincmd_install_citra {
-
-    echo "Installing Citra"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
-}
-
-function maincmd_install_decaf {
-
-    echo "Installing Decaf"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/decaf.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
-}
-
-function maincmd_install_rpcs3 {
-
-    echo "Installing Rpcs3"
-    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/rpcs3.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
-}
+# function maincmd_install_steam {
+# 
+#     echo "Installing Steam"
+#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/steam.sh"
+#     echo "Commiting image"
+#     docker commit $CNAME ${INAME}:steam
+#     container_destroy $CNAME
+#     echo "Done"
+# }
+# 
+# function maincmd_install_dolphin {
+# 
+#     echo "Installing Dolphin"
+#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/dolphin.sh"
+#     echo "Commiting image"
+#     docker commit $CNAME ${INAME}:dolphin
+#     container_destroy $CNAME
+#     echo "Done"
+# }
+# 
+# function maincmd_install_citra {
+# 
+#     echo "Installing Citra"
+#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
+#     echo "Commiting image"
+#     docker commit $CNAME ${INAME}:citra
+#     container_destroy $CNAME
+#     echo "Done"
+# }
+# 
+# function maincmd_install_decaf {
+# 
+#     echo "Installing Decaf"
+#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/decaf.sh"
+#     echo "Commiting image"
+#     docker commit $CNAME ${INAME}:decaf
+#     container_destroy $CNAME
+#     echo "Done"
+# }
+# 
+# function maincmd_install_rpcs3 {
+# 
+#     echo "Installing Rpcs3"
+#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/rpcs3.sh"
+#     echo "Commiting image"
+#     docker commit $CNAME ${INAME}:rpcs3
+#     container_destroy $CNAME
+#     echo "Done"
+# }
 
 function maincmd_install_cemu {
 
-  # This is a graphical setup 
-    echo "Installing Cemu"
-    docker run -v $HOME:$HOME:rw -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh"
-    echo "Commiting image"
-    docker commit gaming-container kazhed/gaming-container
-    echo "Done"
+    # This needs a graphical setup 
+    return
+    #echo "Installing Cemu"
+    #docker run --env phase=setup --name $CNAME -v $HOME:$HOME:rw -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh" 
+    #echo "Commiting image"
+    #docker commit $CNAME ${INAME}:cemu
+    #container_destroy $CNAME
+    #echo "Done"
 }
 
-function maincmd_run {
- image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
- socket_setup
- container_exists || (echo "Cannot find a container, did you experience an issue while configuring it?"; exit -2)
- docker restart $CNAME
 
+function maincmd_configure_cemu {
+    image_name="${INAME}:cemu" 
+    container_name="${CNAME}-cemu"
+    container_exists $container_name && ( 
+                                            echo "removing previous container";
+                                            container_destroy $container_name;
+                                        )
+    socket_setup && container_create $container_name $image_name "$@"
+}
 
+function maincmd_run_cemu {
+    
+    image_name="${INAME}:cemu" 
+    container_name="${CNAME}-cemu"
+    
+    container_exists $container_name || ( echo "You must configure a container before running it: $0 configure --cemu"; exit -1)
+    socket_setup
+    
+    container_exists $container_name && container_isrunning $container_name && container_restart $container_name && return
+    container_exists $container_name && container_start $container_name && return
+    
+    maincmd_configure  $image_name
+}
 
+function maincmd_start {
+   maincmd_start_cemu 
 }
 
 
