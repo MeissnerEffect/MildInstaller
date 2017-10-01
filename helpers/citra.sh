@@ -4,7 +4,7 @@ BASE_DIR=/launcher
 CONF_FILE=$BASE_DIR/settings.sh
 . $CONF_FILE
 
-APP=CITRA
+APP=DOLPHIN
 APPDIR=$HOME/.local/$APP
 EXEC="/usr/local/bin/citra-qt"
 
@@ -18,15 +18,13 @@ Type=Application
 Categories=CNT;"
 
 COMPATIBILITY_MESSAGE="$APP requires nothing special"
-
 DEPENDENCIES="qt5 sdl2 cmake libcurl-compat"
 
 
 function install_dependencies () {
-  pacman -S --noconfirm $DEPENDENCIES
+  sudo pacman -S --needed --noconfirm $DEPENDENCIES
 
 }
-
 
 function supported {
   return 0
@@ -49,7 +47,7 @@ function text_setup() {
   sudo chown $USER /usr/src
   cd /usr/src/
   git clone --recursive https://github.com/citra-emu/citra.git
-  cd /usr/src/citra
+  cd /usr/src/dolphin
   NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
   echo MAKEFLAGS="-j$NCPUS"
   mkdir build && cd build

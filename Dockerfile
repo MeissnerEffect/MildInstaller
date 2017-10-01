@@ -11,10 +11,10 @@ ARG mesa_rollback
 
 
 # Metadata to generate an update command
-LABEL org.kazhed.mild.buildcmd.gallium_drivers=$gallium_drivers
-LABEL org.kazhed.mild.buildcmd.dri_drivers=$dri_drivers
-LABEL org.kazhed.mild.buildcmd.vulkan_drivers=$vulkan_drivers
-LABEL org.kazhed.mild.username=$MY_USERNAME
+LABEL bzh.kazhed.mild.buildcmd.gallium_drivers=$gallium_drivers
+LABEL bzh.kazhed.mild.buildcmd.dri_drivers=$dri_drivers
+LABEL bzh.kazhed.mild.buildcmd.vulkan_drivers=$vulkan_drivers
+LABEL bzh.kazhed.mild.username=$MY_USERNAME
 
 
 # Legacy values 
@@ -30,6 +30,7 @@ ENV MY_USERNAME=${MY_USERNAME} \
 
 # Add files from host to container 
 COPY preload/ /
+COPY helpers/ /loaders
 
 # Setup Account and allow to "sudo" 
 RUN \

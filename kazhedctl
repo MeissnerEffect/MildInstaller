@@ -54,6 +54,7 @@ declare -A MAIN_COMMAND=(
     ["**prune"]="Remove everything"
     ["**dump"]="Dump packages"
     ["**help"]="This help"
+    #["**uphelper"]="Update helpers"
 )
 
 declare -A COMPILER_OPTIONS=(
@@ -288,8 +289,15 @@ function maincmd_update {
         git pull origin;
         cd ../../../../../
         )
+    username=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.username\"}}")
+    dri=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.dri_drivers\"}}")
+    gal=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.gallium_drivers\"}}")
+    vul=$(docker inspect kazhed/gaming-container -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.vukan_drivers\"}}")
+    command_line=" --build-arg dri_drivers=$dri_drivers --build-arg vulkan_drivers=$vulkan_drivers --build-arg=gallium_drivers=$gallium_drivers --build-arg MY_USERNAME=$username"
+
     container_exists && container_destroy
     image_destroy
+    maincmd_build $command_line
     
 }
 
@@ -402,7 +410,7 @@ function main {
         
     ;;
     install)
-        $install_parameters=""
+        install_parameters=""
         [ -z "$steam" ] || install_parameters+=" install_steam"
         [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
         [ -z "$cemu" ]  || install_parameters+=" install_cemu"
@@ -421,11 +429,28 @@ function main {
     dump)
         maincmd_dump
     ;;
+    uphelper)
+        maincmd_uphelper
+    ;;
     *)
         usage_show
     ;;
     esac
         
+}
+
+function maincmd_uphelper {
+    image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+    echo "Updating helpers"
+    SRC=helpers
+
+    tar Ccf $SRC - ../$SRC/ |docker run  -i --name ${CNAME} $INAME sudo tar x --strip-component 1 -C /launcher
+    echo "Commiting changes"
+    container_commit
+    container_destroy
+    docker run --name ${CNAME} $INAME bash
+    container_commit
+    container_destroy
 }
 
 

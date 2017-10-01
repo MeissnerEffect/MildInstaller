@@ -22,7 +22,7 @@ DEPENDENCIES="qt5 sdl2 cmake libcurl-compat"
 
 
 function install_dependencies () {
-  pacman -S --needed --noconfirm $DEPENDENCIES
+  sudo pacman -S --needed --noconfirm $DEPENDENCIES
 
 }
 

@@ -1,6 +1,5 @@
 #!/usr/bin/bash
 
-
 EXEC=/bin/steam-native
 
 function reinstall_mesa() {
