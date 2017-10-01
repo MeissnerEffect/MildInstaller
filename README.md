@@ -98,8 +98,6 @@ Prepare a new container that includes MesaMild
  BUILD - IMAGE OPTIONS
 
     --experimental=wine,mesa,llvm    Use experimental version of packages [empty=all]
-
-
 </code>
 
 <li>  Build Image </li>
@@ -120,38 +118,5 @@ Prepare a new container that includes MesaMild
   ./kazhedctl build --intel --vukan --optlevel=2 --experimental=wine
 </code></li>
 </ul>
-
-
-<li>  Install product (please consider helping developpers of opensource software) 
-<strong> You can install but you can't remove unless you start from the beginning </strong> 
-<p> To install dolphin, citra, rpcs3, decaf (check the list of options by using help command)
-
-<code>
- ./kazhedctl install --dolphin --citra --rpcs3 --decaf
-</code></li>
-
-<li>  Configure container
-<strong> The configure command will overwrite previous "configure" settings</strong> 
-
-<p> Example 1: Add the directory /srv/storage/games [ by default home will be included ]</p>
-<code>
-./kazhedctl configure --add-dir=/srv/storage/games 
-</code>
-
-
-<p> Example 2: Add the driver /dev/input/by-id/usb-Wireless_Receiver-event-joystick [ by default only the first joystick will be included ] </p>
-<code>
-./kazhedctl configure --add-device=/dev/input/by-id/usb-Wireless_Receiver-event-joystick
-</code></li>
-
-
-<li> You can combine everything in one commande like this 
-<code>
-./kazhedctl build --radeon --vukan --optlevel=15 --dolphin --add-device=/dev/input/by-id/usb-Wireless_Receiver-event-joystick --add-dir=/srv/storage/games
-</code></li>
-
-
-</ol>
-
 </div>
 
