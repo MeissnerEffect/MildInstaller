@@ -10,11 +10,10 @@ ARG mesa_branch
 ARG mesa_rollback 
 
 
-# Metadate to generate an update command
+# Metadata to generate an update command
 LABEL org.kazhed.mild.buildcmd.gallium_drivers=$gallium_drivers
 LABEL org.kazhed.mild.buildcmd.dri_drivers=$dri_drivers
 LABEL org.kazhed.mild.buildcmd.vulkan_drivers=$vulkan_drivers
-LABEL org.kazhed.mild.buildcmd.unstable_products=$unstable_products
 LABEL org.kazhed.mild.username=$MY_USERNAME
 
 

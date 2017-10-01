@@ -19,13 +19,31 @@ Icon=$AppIcon
 Type=Application
 Categories=CNT;"
 
+COMPATIBILITY_MESSAGE="Rpcs3 needs an image built with experimental LLVM [--experimental=llvm]"
 
-function setup() {
-  echo "Setting up application $EXEC"
+
+function check_compatibility() {
+ [ supported ] || ( echo "This configuration is not compatible with this product"; echo $COMPATIBILITY_MESSAGE; exit -1)
+}
+
+
+function graphical_setup() {
+  echo "Installation in progress ..."
   exit 0
 }
 
-function run {
+function text_setup() {
+  echo "Installation in progress ..."
+
+  exit 0
+}
+
+function setup() {
+
+
+}
+
+function run() {
   echo "Run application $EXEC"
   $EXEC 
 }

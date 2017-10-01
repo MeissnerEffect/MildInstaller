@@ -46,13 +46,14 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
   rms=$(tput rmso);rei=$(tput sgr0)
 
 declare -A MAIN_COMMAND=(
-    ["build"]="Build image"
-    ["configure"]="Configure container"
-    ["start"]="Start/Restart container"
-    ["update"]="Update image"
-    ["prune"]="Remove everything"
-    ["dump"]="Dump packages"
-    ["help"]="This help"
+    ["**build"]="Build image"
+    ["**configure"]="Configure container"
+    ["**install"]="Install applications"
+    ["**start"]="Start/Restart container"
+    ["**update"]="Update image"
+    ["**prune"]="Remove everything"
+    ["**dump"]="Dump packages"
+    ["**help"]="This help"
 )
 
 declare -A COMPILER_OPTIONS=(
@@ -76,12 +77,12 @@ declare -A DRIVER_OPTIONS=(
 
 declare -A APPLICATIONS=(
 #    ["--decaf"]="Build decaf from git                        @ (https://github.com/decaf-emu/decaf-emu/)"
-    ["--cemu=X.Y.Z"]="Download the specified version of CEMU @ (http://cemu.info)"
-#    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
+    ["--cemu"]="Install latest public version of CEMU @ (http://cemu.info)"
+    ["--rpcs3"]="Build RPCS3 from git                        @ (https://rpcs3.net)"
 #    ["--dolphin"]="Build Dolphin from git                    @ (https://dolphin-emu.org/)"
 #    ["--citra"]="Build Citra from git                        @ (https://citra-emu.org)"
     ["--steam"]="Install steam                               @ (https://store.steampowered.com/)"
-    ["--wsteam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
+#    ["--wsteam"]="Install steam (wine)                   @ (https://store.steampowered.com/)"
 )
 
 declare -A CONTAINER_SETUP=(
@@ -140,19 +141,24 @@ function usage_show () {
 
     echo "Prepare a new container that includes MesaMild"
     (
-        echo "> COMMAND";     usage_generatetext MAIN_COMMAND; echo "@";
-        echo "> DRIVER OPTIONS";  usage_generatetext DRIVER_OPTIONS;     echo "@";
-        echo "> CONTAINER RUNTIME OPTIONS";     usage_generatetext CONTAINER_SETUP; echo "@"
-        echo "> APPLICATIONS TO INSTALL";          usage_generatetext APPLICATIONS;      echo "@";
-        echo "> COMPILER OPTIONS / TUNING";      usage_generatetext COMPILER_OPTIONS;  echo "@";
-        echo "> IMAGE OPTIONS";            usage_generatetext IMAGE_OPTIONS;  echo "@";
+        echo "> COD";     usage_generatetext MAIN_COMMAND; echo "@";
+        echo "> DRIV";  usage_generatetext DRIVER_OPTIONS;     echo "@";
+        echo "> CON";     usage_generatetext CONTAINER_SETUP; echo "@"
+        echo "> INS";          usage_generatetext APPLICATIONS;      echo "@";
+        echo "> COM";      usage_generatetext COMPILER_OPTIONS;  echo "@";
+        echo "> IMA";            usage_generatetext IMAGE_OPTIONS;  echo "@";
     )  | column  -t -s '@'|cat|
-    sed -e "s/>\ COM/$ble\ COM/g" |
-    sed -e "s/>\ DRIV/$ver\ DRIV/g"     |
-    sed -e "s/>\ APP/$mar\ APP/g"   |
-    sed -e "s/>\ IMA/$vio\ IMA/g"   |
-    sed -e "s/>\ CON/$cya\ CON/g" |
-    sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" |sed -e "s/>/\ /g"
+    sed -e "s/>\ COD/$rou\ MAIN COMMAND/g" |
+    sed -e "s/>\ COM/$ble\ BUILD - COMPILER OPTIONS/g" |
+    sed -e "s/>\ DRIV/$ble\ BUILD - DRIVER OPTIONS/g"     |
+    sed -e "s/>\ INS/$mar\ INSTALL OPTIONS/g"   |
+    sed -e "s/>\ IMA/$ble\ BUILD - IMAGE OPTIONS/g"   |
+    sed -e "s/>\ CON/$vio\ CONTAINER OPTIONS/g" |
+    sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" -e "s/>/\ /g" |
+    sed -e "s/\*\*\(b[-a-zA-Z0-9.,=]*\)/$ble$sms\1${rms}/g" -e "s/>/\ /g" |
+    sed -e "s/\*\*\(c[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
+    sed -e "s/\*\*\(i[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
+    sed -e "s/\*\*\([-a-zA-Z0-9.,=]*\)/$rei$sms\1${rms}/g" -e "s/>/\ /g" 
     echo "$rei"
 
     exit -1
@@ -166,16 +172,6 @@ function container_create {
     echo "docker create $PARAMETERS"
     docker create --entrypoint /usr/bin/bash $PARAMETERS 
 }
-
-#function container_createapp {
-#    
-#    APP=$1
-#    echo "Creating container for application $APP"
-#    PARAMETERS=$(container_setupparams $APP)
-#    echo "docker create $PARAMETERS"
-#    docker create -a STDIN --entrypoint /usr/bin/bash $PARAMETERS  
-#"${APP_BASEDIR}/${APP}.sh"
-#}
 
 function container_runinstall {
 
@@ -395,9 +391,23 @@ function main {
  
         
         maincmd_build "$BUILD_ARGS"
+        
+        #Continue with installation
+        install_parameters=""
+        [ -z "$steam" ] || install_parameters+=" install_steam"
+        [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
+        [ -z "$cemu" ]  || install_parameters+=" install_cemu"
+
+        maincmd_install $install_parameters
+        
     ;;
-    configure)
-        maincmd_configure
+    install)
+        $install_parameters=""
+        [ -z "$steam" ] || install_parameters+=" install_steam"
+        [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
+        [ -z "$cemu" ]  || install_parameters+=" install_cemu"
+
+        maincmd_install $install_parameters
     ;;
     start)
         maincmd_startorrestart
@@ -418,212 +428,17 @@ function main {
         
 }
 
-function cmdline_parse_old {
-# Reformule les options avant de lancer l'analyse des parametres a envoyer au daemon.
 
-    OUTSCRIPT="$PLDAPP_BASEDIR/settings.sh"
-    OUTPARMS=""
-    INPARMS="${ARGS}"
-    OP_FLAGS=""
-    WINE_FLAVOR="wine"
-    STEAM=""
-    WINE_STEAM=""
-    RPCS3=""
-    CEMU=""
-    DOLPHIN=""
-    CITRA=""
-    CEMU=""
-    CC=""
-    CXX=""
-    VULKAN_DRIVERS=""
-    EN_VULKAN=""
-    DRI_DRIVERS=""
-    GALLIUM_DRIVERS=" swrast virgl "
-    KERB=""
-    MESA_BRANCH=master
-    BE=""
-    LDFLAGS="-Wl,--sort-common -Wl,-z,now"
-    EN_GALLIUM=""
-    EN_DRI=1
-    FP=""
-    #mettre les references
-    declare -n rAPP_NAMES=APP_NAMES
-
-  
-    for program_arg in ${INPARMS}; do
-        case $program_arg in
-        --steam)
-        STEAM=0
-        rAPP_NAMES+=( "steam.sh" )
-        ;;
-        --wine-steam)
-        WINE_STEAM=0
-        ;;
-        --cemu*)
-        CEMU=$(echo $program_arg | awk -F= '{ print $2 }')
-        rAPP_NAMES+=( "cemu.sh" )
-        ;;
-        --dolphin)
-        DOLPHIN=0
-        ;;
-        --citra)
-        CITRA=0
-        ;;
-        --optimise)
-        OP_FLAGS+='-march=native -O2 -pipe '  
-        LDFLAGS="-Wl,-O2 $LDFLAGS"
-        ;;
-        --optimise-harder)
-        OP_FLAGS+='-march=native -O3 -pipe '  
-        LDFLAGS="-Wl,-O3 $LDFLAGS"
-        EN_DRI=""
-        ;;
-        --use-lto)
-        OP_FLAGS+=' -flto '
-        LDFLAGS="$LDFLAGS -Wl,-flto"
-        EN_DRI="" 
-        ;;
-        --wine-staging)
-        WINE_FLAVOR="wine-staging"
-        ;;
-        --wine-staging-nine)
-        WINE_FLAVOR="wine-staging-nine"
-        ;;
-        --clang)
-        CXX=clang++; CC=clang
-        ;;
-        --kerberizer-llvm)
-        KERB=1
-        ;;
-        --rpcs3)
-        KERB=1
-        OUTPARMS+="--rpcs3 "
-        ;;
-        --mesa-stable)
-        MESA_BRANCH=$MESA_STABLE
-        ;;
-        --prune)
-        PRUN=""  
-        ;;
-        --trim)
-        TRIM=""  
-        ;;
-        --update)
-        FP=""  
-        ;;
-        --bleeding-edge)
-        BE=1
-        ;;
-
-        *) OUTPARMS+="$program_arg "
-        ;;
-        esac
-    done
-    INPARMS=$OUTPARMS
-    OUTPARMS=""
- 
-    # Mesa
-    for program_arg in ${INPARMS}; do
-    case $program_arg in
-    --radeon) 
-      GALLIUM_DRIVERS+=" radeonsi "
-      VULKAN_DRIVERS+=" radeon "
-      EN_GALLIUM=1
-      ;;
-    --radeon-legacy)
-      GALLIUM_DRIVERS+=" r300 r600 "
-      EN_GALLIUM=1
-      ;;
-    --intel)
-      DRI_DRIVERS+=" i965 "
-      VULKAN_DRIVERS+=" intel "
-      EN_DRI=1
-      ;;
-    --intel-legacy)
-      DRI_DRIVERS+=" i915 "
-      EN_DRI=1
-      ;;
-    --nouveau)
-      GALLIUM_DRIVERS=" nouveau "
-      EN_GALLIUM=1
-      ;;
-    --vulkan)
-      EN_VULKAN=1
-      ;;
-      
-    *)
-      OUTPARMS+="$program_arg "
-      ;;
-    esac
-    done
-  
-  
-  [ -z $EN_DRI ] && DRI_DRIVERS="''"  #LTO handling
-  [ -z $DRI_DRIVERS ]|| OUTPARMS+=" $(echo "--dri_drivers=$DRI_DRIVERS"| tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/)"
-  [ -z $EN_GALLIUM ]|| OUTPARMS+=" $(echo "--gallium_drivers=$GALLIUM_DRIVERS" | tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/g )"
-  [ -z $EN_VULKAN ]|| [ -z $VULKAN_DRIVERS ]||OUTPARMS+=" $(echo "--vulkan_drivers=$VULKAN_DRIVERS"| tr ' ' ',' | sed s/=,/=/|sed s/,$// |sed s/,,/,/)"  
-  CFLAGS=$(echo "$OP_FLAGS" | sed s/\ \ /\ /) 
-  
-  (
-    echo CFLAGS=\"$CFLAGS\";
-    echo CXXFLAGS=\"$CFLAGS\";
-    echo LDFLAGS=\"$LDFLAGS\";
-    [ -z $CC ]    || echo CC=/usr/bin/$CC;
-    [ -z $CXX ]   || echo CXX=/usr/bin/$CXX;
-    echo WINE_FLAVOR=$WINE_FLAVOR;
-    [ -z $STEAM ]         || echo "INSTALL_STEAM=1";
-    [ -z $WINE_STEAM ]    || echo "INSTALL_WINE_STEAM=1";
-    [ -z $CITRA ]         || echo "INSTALL_CITRA=1";
-    [ -z $RPCS3 ]         || echo "INSTALL_RPCS3=1";
-    [ -z $DOLPHIN ]       || echo "INSTALL_DOLPHIN=1";
-    [ -z $CEMU ]          || echo "INSTALL_CEMU=$CEMU";
-  )  > $PLDAPP_BASEDIR/settings.sh
-
-  echo $OUTPARMS
-
-}
-
-function image_gencmdline {
-  
-  IMAGE_SWITCHES=""
-  
-  declare -a VALID_ARGS=$(
-  for arg in ${ARGS}; do
-    echo "$arg"| grep '\-\-' | sed s/\-\-//g
-  done | tr '\n' ' '
-  )
-  for docker_arg in $VALID_ARGS; do
-   SWITCH=$(echo ${docker_arg}|grep -q '=' && echo "$docker_arg" || echo "${docker_arg}=1")
-   IMAGE_SWITCHES+="--build-arg $SWITCH "
-  done
-  echo $IMAGE_SWITCHES
-}
-
-function installscript_generate {
-  # Genere un script d'installation dans $PLDAPP_BASEDIR
-  
-  # Copie les bidules
-  cp helpers/* $PLDAPP_BASEDIR/
-  
-  ( echo ". $APP_BASEDIR/settings.sh"; 
-        for app in CEMU STEAM STEAM_WINE DOLPHIN CITRA RPCS3 DECAF; do
-            loc=$(echo $app | tr '[:upper:]' '[:lower:]');
-            echo "[ -z  \$INSTALL_${app} ]|| bash $APP_BASEDIR/${loc}.sh";
-        done
-  ) > $PLDAPP_BASEDIR/install.sh
-}
-
- 
  function maincmd_build {
   image_exists && echo "Image already exits, either update it, or clean it with '$0 update' or  '$0 prune'"
-  CMDLINE="$@"
+  parameters="$@"
   
   account_generate
   
   echo "Parametres de construction :"
-  echo $CMDLINE
+  echo $parameters
   
-  docker build --pull -t $INAME  $CMDLINE .
+  docker build --pull -t $INAME  $parameters .
   
  }
  
@@ -634,78 +449,51 @@ function installscript_generate {
  echo "Destroying image"
  
  image_destroy
- 
- 
- 
- 
 }
  
+function maincmd_configure {
+ image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
  
- 
+ parameters="$@"
+
+ socket_setup
+ container_setup
+}
+
+function maincmd_install {
+ image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+  parameters="$@"
+ # Install steam
+ echo "Parametres de construction :"
+  
+ echo $parameters | grep -q install_steam &&  maincmd_install_steam
+ echo $parameters | grep -q install_rpcs3 &&  maincmd_install_rpcs3
+
+
+}
+
+function maincmd_install_steam {
+
+    echo "Installing Steam"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/steam.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
+
+
+function maincmd_run {
+ image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
+ socket_setup
+ container_exists || (echo "Cannot find a container, did you experience an issue while configuring it?"; exit -2)
+ docker restart $CNAME
+
+
+
+}
+
+
 PARAMS=$@
 main
 exit
 
-ARGS=$@
-
-
-
-
-echo "$ARGS" > "$PLDAPP_BASEDIR/build_flags"
-
-## Demarrage
-[ "$1" == "--help" ]&&usage_show;
-[ "$1" == "--dump-dl" ]&& container_dumpdl && exit 0
-[ "$1" == "--update" ]&& ( 
-        image_update
-    ) 
-    
-
-# Interception des parametres pour container
-NEWARGS=""
-
-    for carg in $ARGS; do
-    case $carg in
-        --add-dir=*)
-        directory=$(echo $carg | sed s/=/\ / | awk '{ $1=""; print }')
-        echo "Adding directory $directory"
-        VISIBLE_DIRECTORIES+=( "$directory" )
-        ;;
-        --add-device=*)
-        device=$(echo $carg | sed s/=/\ / | awk '{ $1=""; print }')
-        echo "Adding device $device"
-        DEVICE_DRIVERS+=( "$device" )
-        ;;
-        *)
-           NEWARGS+=" $carg"
-    esac; done
-
-ARGS=$NEWARGS
-
-NEWARGS="$(cmdline_parse)"
-ARGS=$NEWARGS
-
-# Vivification du parametrage
-CMDLINE="$(image_gencmdline)"
-ARGS=""
-
-# Averti avant de tout casser 
-image_exists &&     
-    ( 
-        echo "Image exists, skipping (use 'docker rmi $INAME' to rebuild ) " ) ||  
-    ( 
-        echo "About to create an image using : --build-arg MY_USERNAME=$(whoami) $CMDLINE" ;
-        echo "Press [enter] to continue OR exit with [CTRL] + [C]";
-        read;
-        
-        # Mise a disposition des scripts
-        account_generate
-        installscript_generate
-        docker build --pull -t $INAME --build-arg "MY_USERNAME=$(whoami)" $CMDLINE . 
-    )   
-
-# Prepare le display 
-socket_setup
-
-# Monte les peripheriques et joue le reste de l'installation, car elle necessite un display (merci wine...)
-container_setup
