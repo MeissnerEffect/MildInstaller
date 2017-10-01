@@ -1,15 +1,23 @@
 #!/usr/bin/bash
+
+
 EXEC=/bin/steam-native
 
+function reinstall_mesa() {
+  PKG=$(find /usr/src/mesamild -name "*pkg.tar.xz" | tr '\n' ' '); \
+  yes | LC_ALL=C sudo pacman -U $PKG --force ;  \
+}
 
 function setup() {
-sudo pacman -Syu steam --noconfirm
-exit 0
+  sudo pacman -Syu steam --noconfirm
+  reinstall_mesa
+  exit 0
 }
 
 function  run() {
-$EXEC
+  $EXEC
+  exit 0
 }
 
-[ -f $EXEC ] || setup
-run
+[ -f $EXEC ]||setup
+  run
