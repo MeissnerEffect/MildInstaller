@@ -1,73 +1,72 @@
 #!/usr/bin/bash
 
-BASE_DIR=/launcher
-CONF_FILE=$BASE_DIR/settings.sh
-. $CONF_FILE
+CEMU_VERSION=1.9.1
+CEMU_HOOK_VERSION=1100c_0541
 
-APP=CEMU
-APPDIR=$HOME/.local/$APP
-export WINEPREFIX="$HOME/.cemu_prefix"
-EXEC="$WINEPREFIX/drive_c/cemu/Cemu.exe"
+CEMU="http://cemu.info/releases/cemu_${CEMU_VERSION}.zip"
+CEMU_HOOK="https://files.sshnuke.net/cemuhook_${CEMU_HOOK_VERSION}.zip"
 
 
-
-CEMU_HOOK="https://files.sshnuke.net/cemuhook_1100c_0541.zip"
-CEMU="http://cemu.info/releases/cemu_1.9.1.zip"
-
-export WINEARCH=win64
-export WINEDEBUG="-all"
+#MESA SETUP
+export mesa_glthread=true
+export force_glsl_extensions_warn=true
+export allow_higher_compat_version=true
 export MESA_GL_VERSION_OVERRIDE=4.5COMPAT
-export MESA_GLSL_VERSION_OVERRIDE=450
-
-DECFG="[Desktop Entry]
-Name=$APP
-Comment=Start a container running $APP
-Exec=docker start gaming-container-$APP
-Terminal=false
-Icon=$AppIcon
-Type=Application
-Categories=CNT;"
-
-COMPATIBILITY_MESSAGE="Dolphin requires nothing special"
-DEPENDENCIES="qt5 sdl2 cmake libcurl-compat"
-
-
-function install_dependencies () {
-  sudo pacman -S --needed --noconfirm $DEPENDENCIES
-
-}
-
-function supported {
-  return 0
- 
-}
-
-function check_compatibility() {
- [ supported ] || ( echo "This configuration is not compatible with this product"; echo $COMPATIBILITY_MESSAGE; exit -1)
-}
-
+export MESA_GLSL_VERSION_OVERRIDE=450 
+export MESA_RENDERER_OVERRIDE="Mesa" 
+export MESA_VENDOR_OVERRIDE="X.Org"
+export WINEDEBUG="-all"
+export WINEARCH=win64
+export WINEPREFIX="$HOME/.cemu_prefix"
+export WINEDLLOVERRIDES="dbghelp=n" 
+APP=CEMU
+DIRECTORY="$WINEPREFIX/drive_c/cemu"
+EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
+SFLAG="$DIRECTORY/cemu_latest/graphical_setup_done"
 
 function graphical_setup() {
-  echo "Installation in progress ..."
-  exit 0
+    echo "Running graphical setup for $APP"
+    wineboot -u
+    winetricks vc2015 corefonts
+    touch $SFLAG
+ }
+
+function run {
+    echo "Run application $APP :  $EXEC"
+[ -f "$SFLAG" ] && wine64 $EXEC || graphical_setup
 }
+ 
 
 function text_setup() {
-  echo "Installation in progress ..."
+
+    curl $CEMU > /tmp/cemu.zip
+    curl $CEMU_HOOK > /tmp/cemu_hook.zip
   
-  exit 0
+  
+    mkdir -p $DIRECTORY
+    unzip -qq /tmp/cemu.zip -d $DIRECTORY
+
+  
+    rm /tmp/cemu.zip
+    
+  
+    cd $DIRECTORY; ln -s cemu_${CEMU_VERSION} cemu_latest
+    unzip -qq /tmp/cemu_hook.zip -d $DIRECTORY/cemu_latest
+    rm /tmp/cemu_hook.zip
+  
+   
+    sed -e "s/#version 420/#version 450/" -i $EXEC ;
+    chmod +x $EXEC
+    [ -f "$SFLAG" ] && rm $SFLAG
+    exit 0
 }
+
 
 function setup() {
-  text_setup
+    text_setup
 
-}
-
-function run() {
-  echo "Run application $EXEC"
-  $EXEC 
 }
 
 [ -f $EXEC ]||setup
-run 
+    run 
 
