@@ -1,7 +1,8 @@
 <b>YOU NEED DOCKER, and to be able to run docker build as a normal user (check your distribution specifics)</b>
- Pay attention to the differences between an image and a container 
+
+<emphase> Pay attention to the differences between an image and a container 
  Container will be destroyed everytime after use, unless commited 
- Image will not update unless the whole process is restarted 
+ Image will not update unless the whole process is restarted </emphase>
 
 <h3> Setup </h3>
 <div>
