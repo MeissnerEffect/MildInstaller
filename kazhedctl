@@ -361,7 +361,7 @@ function main {
                                 let "opt = optimise & 3"
                                 cflags="";ldflags="-Wl,--sort-common -Wl,-z,now"
                                 [ $native -eq 1 ]   && cflags+="-march=native"
-                                [ $lto -eq 1 ]      && cflags+=" -flto" && ldflags+=" -Wl,-flto"
+                                [ $lto -eq 1 ]      && cflags+="-fno-strict-aliasing -flto" && ldflags+=" -Wl,-flto"
                                 [ $opt -gt 0 ]      && cflags+=" -O${opt}" && ldflags+=" -Wl,-O${opt}"
                                 
                                 echo "CFLAGS='$cflags'" >> $OUTSCRIPT

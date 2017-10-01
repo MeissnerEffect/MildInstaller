@@ -6,7 +6,7 @@ CONF_FILE=$BASE_DIR/settings.sh
 
 APP=DOLPHIN
 APPDIR=$HOME/.local/$APP
-EXEC="/usr/local/bin/dolphin"
+EXEC="/usr/local/bin/dolphin-emu-qt2"
 
 DECFG="[Desktop Entry]
 Name=$APP
@@ -51,7 +51,7 @@ function text_setup() {
   NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
   echo MAKEFLAGS="-j$NCPUS"
   mkdir build && cd build
-  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release -DENABLE_LTO=ON -DENABLE_LLVM=OFF
+  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native -fno-strict-aliasing" -DCMAKE_CXX_FLAGS="-O3 -march=native -fno-strict-aliasing" -DCMAKE_BUILD_TYPE=Release -DENABLE_LTO=ON -DENABLE_LLVM=OFF
   make $MAKFLAGS 
   sudo make install
   exit 0

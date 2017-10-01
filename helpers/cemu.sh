@@ -6,7 +6,10 @@ CONF_FILE=$BASE_DIR/settings.sh
 
 APP=CEMU
 APPDIR=$HOME/.local/$APP
-EXEC="/usr/local/bin/dolphin"
+export WINEPREFIX="$HOME/.cemu_prefix"
+EXEC="$WINEPREFIX/drive_c/cemu/Cemu.exe"
+
+
 
 CEMU_HOOK="https://files.sshnuke.net/cemuhook_1100c_0541.zip"
 CEMU="http://cemu.info/releases/cemu_1.9.1.zip"
@@ -15,16 +18,6 @@ export WINEARCH=win64
 export WINEDEBUG="-all"
 export MESA_GL_VERSION_OVERRIDE=4.5COMPAT
 export MESA_GLSL_VERSION_OVERRIDE=450
-export WINEPREFIX="$HOME/.cemu_prefix"
-
-
-
-
-
-
-
-
-
 
 DECFG="[Desktop Entry]
 Name=$APP
@@ -62,17 +55,6 @@ function graphical_setup() {
 function text_setup() {
   echo "Installation in progress ..."
   
-  
-  sudo chown $MY_USERNAME /usr/src
-  cd /usr/src/
-  git clone --recursive https://github.com/dolphin-emu/dolphin.git
-  cd /usr/src/dolphin
-  NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
-  echo MAKEFLAGS="-j$NCPUS"
-  mkdir build && cd build
-  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release
-  make $MAKFLAGS 
-  sudo make install
   exit 0
 }
 
