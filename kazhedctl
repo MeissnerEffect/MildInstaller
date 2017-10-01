@@ -597,7 +597,7 @@ function maincmd_configure_cemu {
     socket_setup && container_create $container_name $image_name "$@ $APP_BASEDIR/cemu.sh "
 }
 
-function maincmd_run_cemu {
+function maincmd_start_cemu {
     
     image_name="${INAME}:cemu" 
     container_name="${CNAME}-cemu"
@@ -607,8 +607,7 @@ function maincmd_run_cemu {
     
     container_exists $container_name && container_isrunning $container_name && container_restart $container_name && return
     container_exists $container_name && container_start $container_name && return
-    
-    maincmd_configure  $image_name
+
 }
 
 function maincmd_start {
