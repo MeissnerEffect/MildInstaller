@@ -55,7 +55,7 @@ declare -A MAIN_COMMAND=(
     ["**prune"]="Remove everything"
     ["**dump"]="Dump packages"
     ["**help"]="This help"
-    #["**uphelper"]="Update helpers"
+    ["**uphelper"]="DEBUG: Update helpers"
 )
 
 declare -A COMPILER_OPTIONS=(
@@ -321,7 +321,7 @@ function main {
     declare -n rVISIBLE_DIRECTORIES=VISIBLE_DIRECTORIES
     declare -n rDEVICE_DRIVERS=DEVICE_DRIVERS
     
-   [ -z "$PARAMS" ] && ( echo "* Error no command specified *"; usage_show )
+   [ -z "$PARAMS" ] && echo "* Error no command specified *" && usage_show 
  
     main_command=""
     echo "" > $OUTSCRIPT
@@ -434,7 +434,7 @@ function main {
         maincmd_install $install_parameters
     ;;
     start)
-        maincmd_startorrestart
+        maincmd_start
     ;;
     update)
         maincmd_update
@@ -577,8 +577,8 @@ function maincmd_install {
 function maincmd_install_cemu {
 
     # This needs a graphical setup 
-    return
-    #echo "Installing Cemu"
+    echo "Installing Cemu"
+    docker tag ${INAME}:latest ${INAME}:cemu
     #docker run --env phase=setup --name $CNAME -v $HOME:$HOME:rw -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh" 
     #echo "Commiting image"
     #docker commit $CNAME ${INAME}:cemu
@@ -594,7 +594,7 @@ function maincmd_configure_cemu {
                                             echo "removing previous container";
                                             container_destroy $container_name;
                                         )
-    socket_setup && container_create $container_name $image_name "$@"
+    socket_setup && container_create $container_name $image_name "$@ $APP_BASEDIR/cemu.sh "
 }
 
 function maincmd_run_cemu {

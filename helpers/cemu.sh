@@ -17,16 +17,21 @@ export MESA_VENDOR_OVERRIDE="X.Org"
 export WINEDEBUG="-all"
 export WINEARCH=win64
 export WINEPREFIX="$HOME/.cemu_prefix"
-export WINEDLLOVERRIDES="dbghelp=ni,keystone=n" 
+export WINEDLLOVERRIDES="dbghelp=n,keystone=n" 
+
 APP=CEMU
 DIRECTORY="$WINEPREFIX/drive_c/cemu"
 EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
+FLAGS="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
 
 function graphical_setup() {
-    echo "Running graphical setup for $APP"
-    wineboot -u
-    winetricks -q vcrun2015 
-    winetricks -q corefonts
+    [ -f "$FLAGS" ] && (
+        echo "Running graphical setup for $APP"
+        wineboot -u
+        winetricks -q vcrun2015 
+        winetricks -q corefonts
+        touch $FLAGS
+        )
  }
 
 function run() {
@@ -35,7 +40,6 @@ function run() {
 }
 
 function text_setup() {
-
     curl $CEMU > /tmp/cemu.zip
     curl $CEMU_HOOK > /tmp/cemu_hook.zip
     mkdir -p $DIRECTORY
