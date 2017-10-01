@@ -44,7 +44,7 @@ function graphical_setup() {
 function text_setup() {
   echo "Installation in progress ..."
   install_dependencies
-  sudo chown $USER /usr/src
+  sudo chown $MY_USERNAME /usr/src
   cd /usr/src/
   git clone --recursive https://github.com/citra-emu/citra.git
   cd /usr/src/dolphin

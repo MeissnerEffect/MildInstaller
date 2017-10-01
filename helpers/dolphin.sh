@@ -44,14 +44,14 @@ function graphical_setup() {
 function text_setup() {
   echo "Installation in progress ..."
   install_dependencies
-  sudo chown $USER /usr/src
+  sudo chown $MY_USERNAME /usr/src
   cd /usr/src/
   git clone --recursive https://github.com/dolphin-emu/dolphin.git
   cd /usr/src/dolphin
   NCPUS=$(cat /proc/cpuinfo  | grep processor | wc -l); \
   echo MAKEFLAGS="-j$NCPUS"
   mkdir build && cd build
-  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release
+  cmake .. -DCMAKE_C_FLAGS="-O3 -march=native" -DCMAKE_CXX_FLAGS="-O3 -march=native" -DCMAKE_BUILD_TYPE=Release -DENABLE_LTO=ON -DENABLE_LLVM=OFF
   make $MAKFLAGS 
   sudo make install
   exit 0

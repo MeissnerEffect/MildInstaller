@@ -405,6 +405,9 @@ function main {
         [ -z "$steam" ] || install_parameters+=" install_steam"
         [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
         [ -z "$cemu" ]  || install_parameters+=" install_cemu"
+        [ -z "$dolphin" ] || install_parameters+=" install_dolphin"
+        [ -z "$citra" ] || install_parameters+=" install_citra"
+        [ -z "$decaf" ]  || install_parameters+=" install_decaf"
 
         maincmd_install $install_parameters
         
@@ -414,6 +417,9 @@ function main {
         [ -z "$steam" ] || install_parameters+=" install_steam"
         [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
         [ -z "$cemu" ]  || install_parameters+=" install_cemu"
+        [ -z "$dolphin" ] || install_parameters+=" install_dolphin"
+        [ -z "$citra" ] || install_parameters+=" install_citra"
+        [ -z "$decaf" ]  || install_parameters+=" install_decaf"
 
         maincmd_install $install_parameters
     ;;
@@ -493,6 +499,10 @@ function maincmd_install {
   
  echo $parameters | grep -q install_steam &&  maincmd_install_steam
  echo $parameters | grep -q install_rpcs3 &&  maincmd_install_rpcs3
+ echo $parameters | grep -q install_steam &&  maincmd_install_citra
+ echo $parameters | grep -q install_rpcs3 &&  maincmd_install_dolphin
+ echo $parameters | grep -q install_rpcs3 &&  maincmd_install_decaf
+ 
 
 
 }
@@ -506,6 +516,50 @@ function maincmd_install_steam {
     echo "Done"
 }
 
+function maincmd_install_dolphin {
+
+    echo "Installing Dolphin"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/dolphin.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
+
+function maincmd_install_citra {
+
+    echo "Installing Citra"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
+
+function maincmd_install_decaf {
+
+    echo "Installing Decaf"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/decaf.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
+
+function maincmd_install_rpcs3 {
+
+    echo "Installing Rpcs3"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/rpcs3.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
+
+function maincmd_install_cemu {
+
+    echo "Installing Cemu"
+    docker run -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh"
+    echo "Commiting image"
+    docker commit gaming-container kazhed/gaming-container
+    echo "Done"
+}
 
 function maincmd_run {
  image_exists || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
