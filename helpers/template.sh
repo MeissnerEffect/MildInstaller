@@ -4,7 +4,7 @@ BASE_DIR=/launcher
 CONF_FILE=$BASE_DIR/settings.sh
 . $CONF_FILE
 
-# Application mush be installed either in container or $HOME and store files inside $HOME
+# Application must be installed either in container or $HOME and store files inside $HOME
 
 APP=MYAPP
 APPDIR=$HOME/.local/$APP
@@ -19,7 +19,7 @@ Icon=$AppIcon
 Type=Application
 Categories=CNT;"
 
-COMPATIBILITY_MESSAGE="Rpcs3 needs an image built with experimental LLVM [--experimental=llvm]"
+COMPATIBILITY_MESSAGE="$APP needs an image built with experimental LLVM [--experimental=llvm]"
 
 
 function check_compatibility() {
