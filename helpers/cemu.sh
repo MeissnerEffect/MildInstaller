@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 
-CEMU_VERSION=1.9.1
+CEMU_VERSION=1.10.0
 CEMU_HOOK_VERSION=1100c_0541
 
 CEMU="http://cemu.info/releases/cemu_${CEMU_VERSION}.zip"
