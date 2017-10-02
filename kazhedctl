@@ -173,7 +173,7 @@ function container_create {
     shift
     PARAMETERS="$(container_setupparams $container_name $image_name) $@"
     echo "Creating container $container_name above $image_name, using $PARAMETERS"
-    docker create --entrypoint /usr/bin/bash $PARAMETERS 
+    docker create -it --entrypoint /usr/bin/bash $PARAMETERS 
 }
 
 function container_commit {
@@ -334,8 +334,8 @@ function main {
             [ ${#P} -ne ${#PARG} ] && V=$(echo $PARG|cut -d'=' -f2)
        
             case $P in 
-                add-dir) rVISIBLE_DIRECTORIES+="$V";;
-                add-device) rDEVICE_DRIVERS+="$V";;
+                add-dir) rVISIBLE_DIRECTORIES+=" $V";;
+                add-device) rDEVICE_DRIVERS+=" $V";;
                 *) eval "$P=$V";;
             esac
         else

@@ -17,20 +17,20 @@ export MESA_VENDOR_OVERRIDE="X.Org"
 export WINEDEBUG="-all"
 export WINEARCH=win64
 export WINEPREFIX="$HOME/.cemu_prefix"
-export WINEDLLOVERRIDES="dbghelp=n,keystone=n" 
+export WINEDLLOVERRIDES="dbghelp,keystone=n,b" 
 
 APP=CEMU
 DIRECTORY="$WINEPREFIX/drive_c/cemu"
 EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
-FLAGS="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
+FLAG="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
 
 function graphical_setup() {
-    [ -f "$FLAGS" ] && (
+    [ -f "$FLAG" ] || (
         echo "Running graphical setup for $APP"
         wineboot -u
         winetricks -q vcrun2015 
         winetricks -q corefonts
-        touch $FLAGS
+        touch $FLAG
         )
  }
 
@@ -54,8 +54,15 @@ function text_setup() {
 }
 
 function setup() {
+    echo "installing cemu"
     text_setup
+    echo "starting graphical installation"
     graphical_setup
+    echo "starting winecfg"
+    winecfg & 
+    pid=$!
+    wait $pid
+    run 
 }
 
 [ -f $EXEC ]||setup
