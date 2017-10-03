@@ -195,6 +195,7 @@ function container_stop {
 
 function container_destroy {
     container_name=$1
+    echo "Destroying container $container_name"
     container_isrunning $container_name  && container_stop $container_name && container_wait $container_name 
     docker rm $container_name
 }
@@ -278,27 +279,25 @@ function image_destroy {
     image_exists && docker image rm -f $image_name
 }
 
-function container_dumpdl {
+function maincmd_dump {
     #image_name=$1
     image_exists $INAME||(
     echo "Image doesn't exist - will not dump data"; 
     exit -1 )
-    
-    CRID=$(docker container ls  --all |grep $INAME |head -1 |awk '{print $1}')
-    
-    [ -z "$CRID" ] || 
-    (
-        echo "Extracting files from container";
-        [ -d preload/var/cache/pacman ] || mkdir -p preload/var/cache/pacman
-        [ -d preload/usr/src/mesamild/mesa ] || mkdir -p preload/usr/src/mesamild/mesa
-        docker cp ${CRID}:/var/cache/pacman/pkg preload/var/cache/pacman;
-        docker cp ${CRID}:/usr/src/mesamild/mesa  preload/usr/src/mesamild
-    )
+
+    [ -d preload/var/cache/pacman ] || mkdir -p preload/var/cache/pacman
+    [ -d preload/usr/src/mesamild/mesa ] || mkdir -p preload/usr/src/mesamild/mesa
+    CONTAINER=${CNAME}-dump
+    container_create $CONTAINER $INAME
+    echo "Extracting files from container";
+    docker cp ${CONTAINER}:/var/cache/pacman/pkg preload/var/cache/pacman;
+    docker cp ${CONTAINER}:/usr/src/mesamild/mesa  preload/usr/src/mesamild
+    container_destroy $CONTAINER 
 }
 
 function maincmd_update {
     # Create or start a container 
-    container_dumpdl $INAME
+    maincmd_dump $INAME
     [ -d preload/usr/src/mesamild/mesa ] && (
         echo "Updating mesa"
         cd preload/usr/src/mesamild/mesa;
