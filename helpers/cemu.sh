@@ -35,11 +35,13 @@ function graphical_setup() {
  }
 
 function run() {
-    echo "Run application $APP :  $EXEC"
+   [ "z$SKIP_RUN" == "zyes" ] && exit 0
+   echo "Run application $APP :  $EXEC"
     wine64 $EXEC 
 }
 
 function text_setup() {
+    
     curl $CEMU > /tmp/cemu.zip
     curl $CEMU_HOOK > /tmp/cemu_hook.zip
     mkdir -p $DIRECTORY

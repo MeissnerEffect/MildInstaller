@@ -48,8 +48,8 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
 
 declare -A MAIN_COMMAND=(
     ["**build"]="Build image"
-    ["**configure"]="Configure container"
-    ["**install"]="Install applications"
+    ["**reconfigure"]="Reconfigure container"
+    ["**install"]="Install application"
     ["**start"]="Start/Restart container"
 #    ["**update"]="Update image"
     ["**prune"]="Remove everything"
@@ -139,7 +139,7 @@ function usage_show {
     
     echo "Usage : $(basename $0)"
 
-    echo "Prepare a new container that includes MesaMild"
+    echo "Build or setup a new container that includes MesaMild"
     (
         echo "> COD";     usage_generatetext MAIN_COMMAND; echo "@";
         echo "> DRIV";  usage_generatetext DRIVER_OPTIONS;     echo "@";
@@ -156,7 +156,7 @@ function usage_show {
     sed -e "s/>\ CON/$vio\ CONTAINER OPTIONS/g" |
     sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\(b[-a-zA-Z0-9.,=]*\)/$ble$sms\1${rms}/g" -e "s/>/\ /g" |
-    sed -e "s/\*\*\(c[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
+    sed -e "s/\*\*\(r[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
     sed -e "s/\*\*\(i[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\(s[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\([-a-zA-Z0-9.,=]*\)/$rei$sms\1${rms}/g" -e "s/>/\ /g" 
@@ -167,16 +167,20 @@ function usage_show {
 
 ## CONTAINER
 function container_create {
+    local container_name
+    local image_name
     container_name=$1
     shift
     image_name=$1
     shift
     PARAMETERS="$(container_setupparams $container_name $image_name) $@"
     echo "Creating container $container_name above $image_name, using $PARAMETERS"
-    docker create -it --entrypoint /usr/bin/bash $PARAMETERS 
+    docker create -it -e SKIP_RUN=no   --entrypoint /usr/bin/bash $PARAMETERS 
 }
 
 function container_commit {
+    local container_name
+    local image_name
     container_name=$1
     shift
     image_name=$1
@@ -184,16 +188,19 @@ function container_commit {
 }
 
 function container_exists {
+    local container_name
     container_name=$1
     docker container ls --all |grep -q $container_name
 }
 
 function container_stop {
+    local container_name
     container_name=$1
     docker stop $container_name
 }
 
 function container_destroy {
+    local container_name
     container_name=$1
     echo "Destroying container $container_name"
     container_isrunning $container_name  && container_stop $container_name && container_wait $container_name 
@@ -201,20 +208,24 @@ function container_destroy {
 }
 
 function container_isrunning {
+    local image_name
     image_name=$1
     docker ps | grep -q $image_name
 }
 
 function container_wait {
+    local container_name
     container_name=$1
     docker wait $container_name
 }
 function container_start {
+    local container_name
     container_name=$1
     docker start $container_name
 }
 
 function container_restart {
+    local container_name
     container_name=$1
     docker restart $container_name
 }
@@ -224,6 +235,7 @@ function container_switch_on {
 }
 
 function container_exec {
+    local container_name
     container_name=$1
     shift
     command=$@
@@ -231,6 +243,7 @@ function container_exec {
 }
 
 function container_setup {
+    local container_name
     echo "Creating container, and launching install"
     container_name=$1
     container_exists $container_name && container_destroy $container_name; 
@@ -238,7 +251,8 @@ function container_setup {
 }
 
 function container_setupparams {
-
+    local container_name
+    local image_name
     container_name=$1
     shift
     image_name=$1
@@ -270,13 +284,17 @@ function container_setupparams {
 
 
 function image_exists {
+    local image_name
     image_name=$1
-    docker image ls -a ${image_name}  |grep -q ${image_name}
+    docker image ls -a ${image_name}  |grep -q "${image_name}"
 }
 
 function image_destroy {
+    #local container_name
+    local image_name
+    
     image_name=$1
-    image_exists && docker image rm -f $image_name
+    image_exists $image_name && docker image rmi -f $image_name
 }
 
 function maincmd_dump {
@@ -307,9 +325,10 @@ function maincmd_update {
     username=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.username\"}}")
     dri=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.dri_drivers\"}}")
     gal=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.gallium_drivers\"}}")
-    vul=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.vukan_drivers\"}}")
-    command_line=" --build-arg dri_drivers=$dri_drivers --build-arg vulkan_drivers=$vulkan_drivers --build-arg=gallium_drivers=$gallium_drivers --build-arg MY_USERNAME=$username"
-
+    vul=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.vulkan_drivers\"}}")
+    command_line=" --build-arg dri_drivers=$dri --build-arg vulkan_drivers=$vul --build-arg=gallium_drivers=$gal --build-arg MY_USERNAME=$username"
+    echo $command_line
+    #
     maincmd_prune
     maincmd_build $command_line
 }
@@ -344,6 +363,13 @@ function main {
         
     done
     
+    declare -a app_to_install
+    
+    for key in "${!APPLICATIONS[@]}"; do
+        app=${key:2}
+        install=${!app:-0}
+        [ $install -eq 1 ] && echo "$app will be installed" && app_to_install+=$app
+    done
     
     case $main_command in 
 
@@ -351,18 +377,18 @@ function main {
         ;;
 
     build)    
-    BUILD_ARGS="";mesa_version=$MESA_STABLE
-    optimise=$OPTIMISE_DEFAULT;gallium_drivers="swrast";
-    dri_drivers="''";wine_version=wine
+        BUILD_ARGS="";mesa_version=$MESA_STABLE
+        optimise=$OPTIMISE_DEFAULT;gallium_drivers="swrast";
+        dri_drivers="''";wine_version=wine
     
-    [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" ; mesa_version="master"
-    [ -n "$experimental" ]      && echo $experimental | grep -q "wine" && wine_version="wine-staging"
-    [ -n "$experimental" ]      && echo $experimental | grep -q "llvm" && llvm="kerberizer" 
-    [ -n "$clang" ]             && ( 
+        [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" ; mesa_version="master"
+        [ -n "$experimental" ]      && echo $experimental | grep -q "wine" && wine_version="wine-staging"
+        [ -n "$experimental" ]      && echo $experimental | grep -q "llvm" && llvm="kerberizer" 
+        [ -n "$clang" ]             && ( 
                                 echo CC=/usr/bin/clang      >> $OUTSCRIPT
                                 echo CXX=/usr/bin/clang++   >> $OUTSCRIPT
                                 )
-     [ -n "$optimise" ]          && (
+        [ -n "$optimise" ]          && (
                                 # Compiler flags
                                 native=0;lto=0;opt=0;
                                 let "lto = (optimise & 8) == 8"
@@ -378,62 +404,43 @@ function main {
                                 echo "LDFLAGS='$ldflags'" >> $OUTSCRIPT
                                 
                                 )
-    [ -n "$intel" ]             && dri_drivers="i965" && vulkan_drivers+=" intel" && build_tuning=1
-    [ -n "$radeon" ]            && gallium_drivers+=" radeonsi " && vulkan_drivers+=" radeon" && build_tuning=1
-    [ -n "$nouveau" ]           && gallium_drivers+=" nouveau " && build_tuning=1
-    [ -n "$legacy" ]            && echo $legacy | grep -q "radeon" && gallium_drivers+=" r600" && build_tuning=1
-    [ -n "$legacy" ]            && echo $legacy | grep -q "intel" && dri_drivers+=" i915" && build_tuning=1
-    [ -n "$nine" ]              && wine_version="wine-staging-nine";     
+        [ -n "$intel" ]             && dri_drivers="i965" && vulkan_drivers+=" intel" && build_tuning=1
+        [ -n "$radeon" ]            && gallium_drivers+=" radeonsi " && vulkan_drivers+=" radeon" && build_tuning=1
+        [ -n "$nouveau" ]           && gallium_drivers+=" nouveau " && build_tuning=1
+        [ -n "$legacy" ]            && echo $legacy | grep -q "radeon" && gallium_drivers+=" r600" && build_tuning=1
+        [ -n "$legacy" ]            && echo $legacy | grep -q "intel" && dri_drivers+=" i915" && build_tuning=1
+        [ -n "$nine" ]              && wine_version="wine-staging-nine";     
     
   
-    [ -z "$build_tuning" ] && dri_drivers="i965 i915" && gallium_drivers="r600 radeonsi nouveau" && vulkan_drivers="intel radeon" && vulkan=1
+        [ -z "$build_tuning" ] && dri_drivers="i965 i915" && gallium_drivers="r600 radeonsi nouveau" && vulkan_drivers="intel radeon" && vulkan=1
     
-    vulkan_drivers=$(echo $vulkan_drivers| tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/' )
+        vulkan_drivers=$(echo $vulkan_drivers| tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/' )
     
-    [ -z "$vulkan" ] && vulkan_drivers="''"
+        [ -z "$vulkan" ] && vulkan_drivers="''"
     
-    BUILD_PARAM+=$(echo "dri_drivers=$dri_drivers" | tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/')
-    BUILD_PARAM+=" "
-    BUILD_PARAM+=$(echo "gallium_drivers=$gallium_drivers" | tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/g')
-    BUILD_PARAM+=" vulkan_drivers=$vulkan_drivers"
-    BUILD_PARAM+=" MY_USERNAME=$(whoami) "
+        BUILD_PARAM+=$(echo "dri_drivers=$dri_drivers" | tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/')
+        BUILD_PARAM+=" "
+        BUILD_PARAM+=$(echo "gallium_drivers=$gallium_drivers" | tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/g')
+        BUILD_PARAM+=" vulkan_drivers=$vulkan_drivers"
+        BUILD_PARAM+=" MY_USERNAME=$(whoami) "
     
-    
-    for arg in $BUILD_PARAM; do 
-        BUILD_ARGS+="--build-arg $arg "
-    done
+        for arg in $BUILD_PARAM; do 
+            BUILD_ARGS+="--build-arg $arg "
+        done
 
-    echo "WINE_VERSION=$wine_version" >> $OUTSCRIPT
-    echo "MESA=$mesa_version" >> $OUTSCRIPT
- 
-        
+        echo "WINE_VERSION=$wine_version" >> $OUTSCRIPT
+        echo "MESA=$mesa_version" >> $OUTSCRIPT
+    
         maincmd_build "$BUILD_ARGS"
-        
-        #Continue with installation
-        install_parameters=""
-        [ -z "$steam" ] || install_parameters+=" install_steam"
-        [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
-        [ -z "$cemu" ]  || install_parameters+=" install_cemu"
-        [ -z "$dolphin" ] || install_parameters+=" install_dolphin"
-        [ -z "$citra" ] || install_parameters+=" install_citra"
-        [ -z "$decaf" ]  || install_parameters+=" install_decaf"
-
-        maincmd_install $install_parameters
-        
     ;;
+    
     install)
-        install_parameters=""
-        [ -z "$steam" ] || install_parameters+=" install_steam"
-        [ -z "$rpcs3" ] || install_parameters+=" install_rpcs3"
-        [ -z "$cemu" ]  || install_parameters+=" install_cemu"
-        [ -z "$dolphin" ] || install_parameters+=" install_dolphin"
-        [ -z "$citra" ] || install_parameters+=" install_citra"
-        [ -z "$decaf" ]  || install_parameters+=" install_decaf"
-
-        maincmd_install $install_parameters
+        for app in "${app_to_install[@]}"; do
+            maincmd_install $app; done
     ;;
     start)
-        maincmd_start
+        for app in "${app_to_install[@]}"; do
+            maincmd_start $app; done
     ;;
     update)
         maincmd_update
@@ -442,7 +449,8 @@ function main {
         maincmd_prune
     ;;
     configure)
-        maincmd_configure
+        for app in "${app_to_install[@]}"; do
+            maincmd_configure $app; done
     ;;
     dump)
         maincmd_dump
@@ -486,128 +494,100 @@ function maincmd_uphelper {
  
  function maincmd_prune {
     
-    #image_exists $INAME || (echo "Nothing to do" ; exit 0)
     docker images | grep $INAME |awk '{print "docker rmi "$3}' | bash
     docker images | grep $CNAME |awk '{print "docker rmi "$3}' | bash   
- 
 }
  
-function maincmd_configure {
-    
-    maincmd_configure_cemu
-    #image_name=$1
-    #shift
-    #image_exists $image_name || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
-    #parameters="$(container_setupparams) $@"
-    #socket_setup
-    #container_setup
-}
-
-#TextMode Install
 function maincmd_install {
- 
+    local product
+    local container_name
+    local image_name
+    local params
+    local loader_script_name
+  
+    product=$1
+    shift
+    params=$@
+    local container_name
+    local image_name
+  
+    image_name="${INAME}:${product}" 
+    container_name="${CNAME}-${product}"
+    loader_script_name="$APP_BASEDIR/${product}.sh" 
+    echo "$image_name $container_name $loader_script_name"
+  
+  
     image_exists $INAME || (echo "Image do not exist, did you experience an issue while building it?" ; exit -1)
-    parameters="$@"
+  
+    echo "Installing $product"
+    echo "$image_name $container_name $loader_script_name"
+    echo -n "1 Cleaning previous installation : "
+    container_exists $container_name && container_destroy $container_name
+    image_exists ${image_name} && image_destroy ${image_name}
+    echo "done"
     
-    
-    echo $parameters | grep -q install_steam      &&  maincmd_install_steam
-    echo $parameters | grep -q install_rpcs3      &&  maincmd_install_rpcs3
-    echo $parameters | grep -q install_citra      &&  maincmd_install_citra
-    echo $parameters | grep -q install_dolphin    &&  maincmd_install_dolphin
-    echo $parameters | grep -q install_decaf      &&  maincmd_install_decaf
-    echo $parameters | grep -q install_cemu       &&  maincmd_install_cemu
+    echo -n "2 Setting up sockets : "
+    socket_setup
+    echo "done"
+  
+    echo -n "3 Creating a temporary container and build a new image for $product : "
+    docker run --name $CNAME -e SKIP_RUN=yes -it --entrypoint /usr/bin/bash $INAME $loader_script_name
+    echo "done"
+  
+    echo -n "4 Commiting changes : "
+    container_commit $CNAME $image_name
+    echo "done"
+  
+    echo -n "5 Destroying temporary container : "
+    container_destroy $CNAME
+    echo "done"
+  
+    echo -n "6 Creating application container : "
+    maincmd_configure $product 
+    echo "Done"
 }
 
- function maincmd_install_steam {
- 
-     echo "Installing Steam"
-     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/steam.sh"
-     echo "Commiting image"
-     docker commit $CNAME ${INAME}:steam
-     container_destroy $CNAME
-     echo "Done"
- }
-# 
- function maincmd_install_dolphin {
- 
-     echo "Installing Dolphin"
-     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/dolphin.sh"
-     echo "Commiting image"
-     docker commit $CNAME ${INAME}:dolphin
-     container_destroy $CNAME
-     echo "Done"
- }
- 
- function maincmd_install_citra {
- 
-     echo "Installing Citra"
-     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/citra.sh"
-     echo "Commiting image"
-     docker commit $CNAME ${INAME}:citra
-     container_destroy $CNAME
-     echo "Done"
- }
- 
-# function maincmd_install_decaf {
-# 
-#     echo "Installing Decaf"
-#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/decaf.sh"
-#     echo "Commiting image"
-#     docker commit $CNAME ${INAME}:decaf
-#     container_destroy $CNAME
-#     echo "Done"
-# }
-# 
-# function maincmd_install_rpcs3 {
-# 
-#     echo "Installing Rpcs3"
-#     docker run --name $CNAME -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/rpcs3.sh"
-#     echo "Commiting image"
-#     docker commit $CNAME ${INAME}:rpcs3
-#     container_destroy $CNAME
-#     echo "Done"
-# }
-
-function maincmd_install_cemu {
-
-    # This needs a graphical setup 
-    echo "Installing Cemu"
-    docker tag ${INAME}:latest ${INAME}:cemu
-    #docker run --env phase=setup --name $CNAME -v $HOME:$HOME:rw -it --entrypoint /usr/bin/bash $INAME "$APP_BASEDIR/cemu.sh" 
-    #echo "Commiting image"
-    #docker commit $CNAME ${INAME}:cemu
-    #container_destroy $CNAME
-    #echo "Done"
-}
-
-
-function maincmd_configure_cemu {
-    image_name="${INAME}:cemu" 
-    container_name="${CNAME}-cemu"
+function maincmd_configure {
+    local product
+    local container_name
+    local image_name
+    local params
+    local loader_script_name
+    
+    product=$1
+    shift
+    params=$@
+    
+    image_name="${INAME}:${product}" 
+    container_name="${CNAME}-${product}"
+    loader_script_name="$APP_BASEDIR/${product}.sh"
+    
     container_exists $container_name && ( 
                                             echo "removing previous container";
                                             container_destroy $container_name;
                                         )
-    socket_setup && container_create $container_name $image_name "$@ $APP_BASEDIR/cemu.sh "
-}
-
-function maincmd_start_cemu {
-    
-    image_name="${INAME}:cemu" 
-    container_name="${CNAME}-cemu"
-    
-    container_exists $container_name || ( echo "You must configure a container before running it: $0 configure --cemu"; exit -1)
-    socket_setup
-    
-    container_exists $container_name && container_isrunning $container_name && container_restart $container_name && return
-    container_exists $container_name && container_start $container_name && return
-
+    # Attention ne pas oublier de traiter les parametres de configuration
+    socket_setup && container_create $container_name $image_name "$@ $loader_script_name "
 }
 
 function maincmd_start {
-   maincmd_start_cemu 
-}
+    local product
+    local container_name
+    local image_name
+    local params
+    local loader_script_name
+    
+    product=$1
+    shift
+    params=$@
+    image_name="${INAME}:${product}" 
+    container_name="${CNAME}-${product}"
+    
+    container_exists $container_name || ( echo "You must configure a container before running it: $0 configure --cemu"; exit -1)
+    socket_setup && container_exists $container_name && container_isrunning $container_name && container_restart $container_name && return
+    socket_setup && container_exists $container_name && container_start $container_name && return
 
+}
 
 PARAMS=$@
 main

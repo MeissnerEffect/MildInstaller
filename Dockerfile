@@ -9,7 +9,6 @@ ARG mesa_repository
 ARG mesa_branch
 ARG mesa_rollback 
 
-
 # Metadata to generate an update command
 LABEL bzh.kazhed.mild.buildcmd.gallium_drivers=$gallium_drivers
 LABEL bzh.kazhed.mild.buildcmd.dri_drivers=$dri_drivers
