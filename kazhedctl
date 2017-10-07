@@ -88,7 +88,9 @@ declare -A APPLICATIONS=(
 
 declare -A CONTAINER_SETUP=(
     ["--add-dir=X"]="Add the X directory in the container"
-    ["--add-device=X"]="Add the char device X in the container"
+    ["--add-device=X"]="Add the device X in the container"
+#    ["--add-environment=X"]="Set the environment variables using a file"
+    
 #    ["--use-cpu=X,Y,Z"]="Use only enumerated CPU"
 #    ["--max-ram=X"]="Hard memory limit"S
 #    ["--max-swap=X,Y"]="Use max swap and define swapiness"
@@ -315,6 +317,12 @@ function maincmd_dump {
 
 function maincmd_update {
     # Create or start a container 
+    local username
+    local dri
+    local gal 
+    local vul
+    local command_line
+    
     maincmd_dump $INAME
     [ -d preload/usr/src/mesamild/mesa ] && (
         echo "Updating mesa"
@@ -322,6 +330,7 @@ function maincmd_update {
         git pull origin;
         cd ../../../../../
         )
+
     username=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.username\"}}")
     dri=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.dri_drivers\"}}")
     gal=$(docker inspect $INAME -f  "{{index .Config.Labels \"bzh.kazhed.mild.buildcmd.gallium_drivers\"}}")
