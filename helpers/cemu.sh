@@ -1,4 +1,7 @@
 #!/usr/bin/bash
+# Uncomment to enable debugging
+# export DEBUGALL=1
+
 
 CEMU_VERSION=1.10.0
 CEMU_HOOK_VERSION=1100c_0541
@@ -18,6 +21,16 @@ export WINEDEBUG="-all"
 export WINEARCH=win64
 export WINEPREFIX="$HOME/.cemu_prefix"
 export WINEDLLOVERRIDES="dbghelp,keystone=n,b" 
+
+#DEBUG MODE
+if [ -n "$DEBUGALL" ]; then
+	export WINEDEBUG="+opengl,+wgl"
+	export MESA_DEBUG=context
+	export MESA_GLSL=log
+	export MESA_GLSL_CACHE_DISABLE=true
+	export GALLIUM_HUD=fps,cpu,VRAM-usage,num-compilations,GPU-load
+fi
+
 
 APP=CEMU
 DIRECTORY="$WINEPREFIX/drive_c/cemu"
