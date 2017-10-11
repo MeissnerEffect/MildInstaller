@@ -1,6 +1,6 @@
 #!/usr/bin/bash
 # Uncomment to enable debugging
- export DEBUGALL=1
+# export DEBUGALL=1
 
 
 CEMU_VERSION=1.10.0
@@ -29,18 +29,14 @@ if [ -n "$DEBUGALL" ]; then
 	export MESA_GLSL=log
 	export MESA_GLSL_CACHE_DISABLE=true
 	export GALLIUM_HUD=fps,cpu,VRAM-usage,num-compilations,GPU-load
-	export DUMPPATH=$WINEPREFIX/dump
-	export CAPTPATH=$WINEPREFIX/capture
-	[ -d "$CAPTPATH" ] || mkdir -p $CAPTPATH
-	[ -d "$DUMPPATH" ] || mkdir -p $DUMPPATH
-	export MESA_SHADER_DUMP_PATH=$DUMPPATH
- 	export MESA_SHADER_CAPTURE_PATH=$CAPTPATH
 fi
 
+
 APP=CEMU
+DIRECTORY="$WINEPREFIX/drive_c/cemu"
 EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
 FLAG="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
-DIRECTORY="$WINEPREFIX/drive_c/cemu"
+
 function graphical_setup() {
     [ -f "$FLAG" ] || (
         echo "Running graphical setup for $APP"
