@@ -6,7 +6,7 @@ ARG gallium_drivers
 ARG dri_drivers
 ARG vulkan_drivers
 ARG mesa_repository
-ARG mesa_branch
+ARG mesa_version
 ARG mesa_rollback 
 
 # Metadata to generate an update command
@@ -19,7 +19,7 @@ LABEL bzh.kazhed.mild.username=$MY_USERNAME
 # Legacy values 
 ENV MY_USERNAME=${MY_USERNAME} \
     mesa_repository=${mesa_repository:-'https://github.com/mikakev1/mesa_mild_compatibility.git'} \
-    mesa_branch=${mesa_branch:-master} \
+    mesa_version=${mesa_version:-master} \
     mesa_rollback=${mesa_rollback:-2b8b9a56efc24cc0f27469bf1532c288cdca2076} \ 
     gallium_drivers=${gallium_drivers:-'i915,r300,r600,radeonsi,nouveau,svga,swrast,virgl'} \
     dri_drivers=${dri_drivers:-'i915,i965,r200,radeon,nouveau,swrast'} \
@@ -60,7 +60,7 @@ RUN \
   lib32-expat lib32-fontconfig lib32-freetype2 lib32-gcc-libs lib32-gettext lib32-giflib lib32-glib2 lib32-glibc lib32-glu  \
   lib32-gnutls lib32-gst-plugins-base-libs lib32-gstreamer lib32-gtk3 lib32-harfbuzz lib32-icu lib32-lcms2 lib32-libcap  \
   lib32-libdrm lib32-libelf lib32-libffi lib32-libgcrypt lib32-libgpg-error lib32-libldap lib32-libnl lib32-libpcap  \
-  lib32-libpciaccess lib32-libpng lib32-libpulse lib32-libsm lib32-libtxc_dxtn lib32-libunwind lib32-libusb lib32-libva  \
+  lib32-libpciaccess lib32-libpng lib32-libpulse lib32-libsm lib32-libunwind lib32-libusb lib32-libva  \
   lib32-libx11 lib32-libxau lib32-libxcb lib32-libxcomposite lib32-libxcursor lib32-libxdamage lib32-libxdmcp lib32-libxext  \
   lib32-libxfixes lib32-libxft lib32-libxi lib32-libxinerama lib32-libxml2 lib32-libxmu lib32-libxrandr lib32-libxrender  \
   lib32-libxshmfence lib32-libxslt lib32-libxv lib32-libxxf86vm lib32-llvm-libs-svn lib32-llvm-svn lib32-mesa-git lib32-mpg123  \
@@ -68,7 +68,7 @@ RUN \
   lib32-wayland lib32-xz lib32-zlib libarchive libassuan libatomic_ops libcap libcap-ng libclc-git libcroco libcups libdaemon  \
   libdatrie libdrm libedit libelf libepoxy libffi libgcrypt libglade libglvnd libgpg-error libice libidn libjpeg-turbo libksba  \
   libldap libmnl libmpc libnftnl libnghttp2 libnl libomxil-bellagio libpcap libpciaccess libpng libpsl libpulse librsvg  \
-  libsasl libseccomp libsecret libsm libssh2 libsystemd libtasn1 libthai libtiff libtirpc libtool libtxc_dxtn libunistring  \
+  libsasl libseccomp libsecret libsm libssh2 libsystemd libtasn1 libthai libtiff libtirpc libtool  libunistring  \
   libunwind libusb libutil-linux libva libx11 libxau libxaw libxcb libxcomposite libxcursor libxdamage libxdmcp libxext  \
   libxfixes libxft libxi libxinerama libxkbcommon libxml2 libxmu libxpm libxrandr libxrender libxshmfence libxslt  \
   libxt libxtst libxv libxxf86vm licenses linux-api-headers llvm-libs-svn llvm-ocaml-svn llvm-svn logrotate lz4 lzo m4 make  \
@@ -78,7 +78,7 @@ RUN \
   randrproto readline recordproto reflector renderproto rsync samba sed serf shadow shared-mime-info sqlite subversion sudo  \
   sysfsutils systemd systemd-sysvcompat tar tcl texinfo tzdata unzip usbutils util-linux v4l-utils videoproto wayland  \
   wayland-protocols wget which $WINE_VERSION wine-mono winetricks xcb-proto xdelta3 xextproto xf86driproto \
-  xf86vidmodeproto xineramaproto xkeyboard-config xorg-xdriinfo xorg-xmessage xproto xz yajl yaourt zlib ; \
+  xf86vidmodeproto lib32-libdrm-git libdrm-git xineramaproto xkeyboard-config xorg-xdriinfo xorg-xmessage xproto xz yajl yaourt zlib ; \
   echo "CFLAGS=\"$CFLAGS\"" >> /etc/makepkg.conf; \
   echo "CXXFLAGS=\"$CXXFLAGS\"" >> /etc/makepkg.conf; \
   echo "LDFLAGS=\"$LDFLAGS\"" >> /etc/makepkg.conf; \
@@ -92,7 +92,7 @@ RUN \
   . /launcher/settings.sh; \
   cd /usr/src/mesamild; \
   yaourt -Gq mesa-git ; yaourt -Gq lib32-mesa-git; \
-  [ -d /usr/src/mesamild/mesa ] || (git clone $mesa_repository -b $mesa_branch mesa;                \
+  [ -d /usr/src/mesamild/mesa ] || (git clone $mesa_repository -b $mesa_version mesa;                \
                                     cd /usr/src/mesamild/mesa;                                      \
                                     git config user.email "dontc@re.com";                           \
                                     git config user.name "Lambig Gwinardant";                       \
@@ -101,7 +101,7 @@ RUN \
   echo "s/--with-dri-drivers=\S+/--with-dri-drivers=$dri_drivers/;" >> /tmp/filter.pl; \
   echo "s/--with-vulkan-drivers=\S+/--with-vulkan-drivers=$vulkan_drivers/;" >> /tmp/filter.pl; \
   echo "s/--with-platforms=\S+/--with-platforms=$platforms/;" >> /tmp/filter.pl; \
-  echo "s#'mesa::git://anongit.freedesktop.org/mesa/mesa'#'git+file:///usr/src/mesamild/mesa'#;" >> /tmp/filter.pl;  \
+  echo "s-'mesa::git://anongit.freedesktop.org/mesa/mesa'-'git+file:///usr/src/mesamild/mesa'-;" >> /tmp/filter.pl;  \
   cd  /usr/src/mesamild/mesa-git; \
   cat PKGBUILD | perl -pl /tmp/filter.pl > /tmp/PKGBUILD; \
   mv /tmp/PKGBUILD PKGBUILD; \

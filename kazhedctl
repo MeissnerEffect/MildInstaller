@@ -7,7 +7,7 @@ CNAME=gaming-container
 CIDFILE=${CNAME}.cid
 HNAME=$CNAME
 INAME=kazhed/gaming-container
-MESA_STABLE=17.2
+MESA_STABLE=17.3.0-rc2
 
 # Set default optimisation to -O3 -march=native
 OPTIMISE_DEFAULT=7
@@ -386,11 +386,12 @@ function main {
         ;;
 
     build)    
-        BUILD_ARGS="";mesa_version=$MESA_STABLE
+        BUILD_ARGS="";
+        mesa_version=$MESA_STABLE
         optimise=$OPTIMISE_DEFAULT;gallium_drivers="swrast";
         dri_drivers="''";wine_version=wine
     
-        [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" ; mesa_version="master"
+        [ -n "$experimental" ]      && echo $experimental | grep -q "mesa" && mesa_version="master"
         [ -n "$experimental" ]      && echo $experimental | grep -q "wine" && wine_version="wine-staging"
         [ -n "$experimental" ]      && echo $experimental | grep -q "llvm" && llvm="kerberizer" 
         [ -n "$clang" ]             && ( 
@@ -432,6 +433,7 @@ function main {
         BUILD_PARAM+=$(echo "gallium_drivers=$gallium_drivers" | tr ' ' ',' | sed -e 's/=,/=/' -e 's/,$//' -e 's/,,/,/g')
         BUILD_PARAM+=" vulkan_drivers=$vulkan_drivers"
         BUILD_PARAM+=" MY_USERNAME=$(whoami) "
+        BUILD_PARAM+=" mesa_version=${mesa_version} "
     
         for arg in $BUILD_PARAM; do 
             BUILD_ARGS+="--build-arg $arg "
