@@ -48,7 +48,7 @@ PLDAPP_BASEDIR="preload/${APP_BASEDIR}"
 
 declare -A MAIN_COMMAND=(
     ["**build"]="Build image"
-    ["**reconfigure"]="Reconfigure container"
+    ["**configure"]="Configure installed container"
     ["**install"]="Install application"
     ["**start"]="Start/Restart container"
 #    ["**update"]="Update image"
@@ -158,7 +158,7 @@ function usage_show {
     sed -e "s/>\ CON/$vio\ CONTAINER OPTIONS/g" |
     sed -e "s/\-\-\([-a-zA-Z0-9.,=]*\)/$sms\-\-\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\(b[-a-zA-Z0-9.,=]*\)/$ble$sms\1${rms}/g" -e "s/>/\ /g" |
-    sed -e "s/\*\*\(r[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
+    sed -e "s/\*\*\(c[-a-zA-Z0-9.,=]*\)/$vio$sms\1${rms}/g" -e "s/>/\ /g" | 
     sed -e "s/\*\*\(i[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\(s[-a-zA-Z0-9.,=]*\)/$mar$sms\1${rms}/g" -e "s/>/\ /g" |
     sed -e "s/\*\*\([-a-zA-Z0-9.,=]*\)/$rei$sms\1${rms}/g" -e "s/>/\ /g" 
