@@ -3,7 +3,7 @@
 # export DEBUGALL=1
 
 
-CEMU_VERSION=1.11.0
+CEMU_VERSION=1.11.1
 CEMU_HOOK_VERSION=1100f_0550
 
 CEMU="http://cemu.info/releases/cemu_${CEMU_VERSION}.zip"
