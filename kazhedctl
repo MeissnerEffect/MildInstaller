@@ -7,7 +7,7 @@ CNAME=gaming-container
 CIDFILE=${CNAME}.cid
 HNAME=$CNAME
 INAME=kazhed/gaming-container
-MESA_STABLE=17.2.6
+MESA_STABLE=mesa-17.2.6
 
 # Set default optimisation to -O3 -march=native
 OPTIMISE_DEFAULT=7
