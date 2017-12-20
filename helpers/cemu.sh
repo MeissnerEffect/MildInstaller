@@ -34,6 +34,7 @@ fi
 
 APP=CEMU
 DIRECTORY="$WINEPREFIX/drive_c/cemu"
+INSTEXEC="$DIRECTORY/cemu_${CEMU_VERSION}/Cemu.exe"
 EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
 FLAG="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
 
@@ -48,13 +49,14 @@ function graphical_setup() {
  }
 
 function run() {
-   [ "z$SKIP_RUN" == "zyes" ] && exit 0
+   [[ "$SKIP_RUN" == "yes" ]] && exit 0
    echo "Run application $APP :  $EXEC"
     wine64 $EXEC 
 }
 
 function text_setup() {
-    
+    latest=$DIRECTORY/cemu_lastest
+    [ -d "$latest" ] && [ -L "$latest" ] && unlink "$latest"
     curl $CEMU > /tmp/cemu.zip
     curl $CEMU_HOOK > /tmp/cemu_hook.zip
     mkdir -p $DIRECTORY
@@ -80,6 +82,6 @@ function setup() {
     run 
 }
 
-[ -f $EXEC ]||setup
+[ -f $INSTEXEC ]||setup
     run 
 
