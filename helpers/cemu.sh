@@ -4,7 +4,7 @@
 
 
 CEMU_VERSION=1.11.2
-CEMU_HOOK_VERSION=1112_0554
+CEMU_HOOK_VERSION=1113_0560
 
 CEMU="http://cemu.info/releases/cemu_${CEMU_VERSION}.zip"
 CEMU_HOOK="https://files.sshnuke.net/cemuhook_${CEMU_HOOK_VERSION}.zip"
