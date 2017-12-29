@@ -111,11 +111,11 @@ Prepare a new container that includes MesaMild
 
 <li><p> Example with strongest optimisations for a radeon graphic card (GCN+) [ container won't run on some x86-64 ] </p>
 <code>
-  ./kazhedctl build --radeon --vukan --optlevel=15 
+  ./kazhedctl build --radeon --vulkan --optlevel=15 
 </code></li>
 <li><p> Example with generic optimisation for an intel graphic card and wine staging, [ container will run on any  X86-64 ] </p>
 <code>
-  ./kazhedctl build --intel --vukan --optlevel=2 --experimental=wine
+  ./kazhedctl build --intel --vulkan --optlevel=2 --experimental=wine
 </code></li>
 </ul>
 </div>
