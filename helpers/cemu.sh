@@ -21,6 +21,8 @@ export WINEDEBUG="-all"
 export WINEARCH=win64
 export WINEPREFIX="$HOME/.cemu_prefix"
 export WINEDLLOVERRIDES="dbghelp,keystone=n,b" 
+#export R600_DEBUG=nir
+
 
 #DEBUG MODE
 if [ -n "$DEBUGALL" ]; then
