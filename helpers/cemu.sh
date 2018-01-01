@@ -54,7 +54,8 @@ function graphical_setup() {
 function run() {
    [[ "$SKIP_RUN" == "yes" ]] && exit 0
    echo "Run application $APP :  $EXEC"
-    wine64 $EXEC 
+   cd $DIRECTORY
+   wine64 $EXEC 
 }
 
 function text_setup() {
