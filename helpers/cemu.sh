@@ -37,8 +37,9 @@ fi
 
 APP=CEMU
 DIRECTORY="$WINEPREFIX/drive_c/cemu"
-INSTEXEC="$DIRECTORY/cemu_${CEMU_VERSION}/Cemu.exe"
-EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
+INSTDIRECTORY="${DIRECTORY}/cemu_${CEMU_VERSION}"
+INSTEXEC="${INSTDIRECTORY}/Cemu.exe"
+#EXEC="$DIRECTORY/cemu_latest/Cemu.exe"
 FLAG="$DIRECTORY/cemu_${CEMU_VERSION}/installed"
 
 function graphical_setup() {
@@ -53,13 +54,13 @@ function graphical_setup() {
 
 function run() {
    [[ "$SKIP_RUN" == "yes" ]] && exit 0
-   echo "Run application $APP :  $EXEC"
-    wine64 $EXEC 
+   cd "${INSTDIRECTORY}"
+    wine64 ${INSTEXEC}
 }
 
 function text_setup() {
     latest="${DIRECTORY}/cemu_latest"
-    newversion="${DIRECTORY}/cemu_${CEMU_VERSION}"
+    #newversion="${DIRECTORY}/cemu_${CEMU_VERSION}"
     curl "$CEMU" > /tmp/cemu.zip
     curl "$CEMU_HOOK" > /tmp/cemu_hook.zip
     [ -d "${DIRECTORY}" ] || mkdir -p "$DIRECTORY"
@@ -70,15 +71,15 @@ function text_setup() {
     cd "${DIRECTORY}"
     
     [ -d "$latest" ] && [ -L "$latest" ] && ( 
-      cp "${latest}"/keys.txt ${newversion};
+      cp "${latest}"/keys.txt ${INSTDIRECTORY};
       unlink "$latest"
     )
     
     ln -s cemu_${CEMU_VERSION} cemu_latest
     unzip -qq /tmp/cemu_hook.zip -d "${latest}"
     rm /tmp/cemu_hook.zip
-    sed -e "s/#version 420/#version 450/" -i $EXEC ;
-    chmod +x $EXEC
+    sed -e "s/#version 420/#version 450/" -i $INSTEXEC ;
+    chmod +x $INSTEXEC
     exit 0
 }
 
