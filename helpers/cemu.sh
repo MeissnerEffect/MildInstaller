@@ -57,7 +57,7 @@ function run() {
 }
 
 function text_setup() {
-    latest=$DIRECTORY/cemu_lastest
+    latest=$DIRECTORY/cemu_latest
     [ -d "$latest" ] && [ -L "$latest" ] && unlink "$latest"
     curl $CEMU > /tmp/cemu.zip
     curl $CEMU_HOOK > /tmp/cemu_hook.zip
