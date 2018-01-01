@@ -2,6 +2,8 @@
 # Uncomment to enable debugging
 # export DEBUGALL=1
 
+# Uncomment to use NIR backend
+#export R600_DEBUG=nir
 
 CEMU_VERSION=1.11.3
 CEMU_HOOK_VERSION=1113_0560
@@ -21,7 +23,6 @@ export WINEDEBUG="-all"
 export WINEARCH=win64
 export WINEPREFIX="$HOME/.cemu_prefix"
 export WINEDLLOVERRIDES="dbghelp,keystone=n,b" 
-#export R600_DEBUG=nir
 
 
 #DEBUG MODE
@@ -57,15 +58,24 @@ function run() {
 }
 
 function text_setup() {
-    latest=$DIRECTORY/cemu_latest
-    [ -d "$latest" ] && [ -L "$latest" ] && unlink "$latest"
-    curl $CEMU > /tmp/cemu.zip
-    curl $CEMU_HOOK > /tmp/cemu_hook.zip
-    mkdir -p $DIRECTORY
-    unzip -qq /tmp/cemu.zip -d $DIRECTORY
+    latest="${DIRECTORY}/cemu_latest"
+    newversion="${DIRECTORY}/cemu_${CEMU_VERSION}"
+    curl "$CEMU" > /tmp/cemu.zip
+    curl "$CEMU_HOOK" > /tmp/cemu_hook.zip
+    [ -d "${DIRECTORY}" ] || mkdir -p "$DIRECTORY"
+
+    unzip -qq /tmp/cemu.zip -d "$DIRECTORY"
     rm /tmp/cemu.zip
-    cd $DIRECTORY; ln -s cemu_${CEMU_VERSION} cemu_latest
-    unzip -qq /tmp/cemu_hook.zip -d $DIRECTORY/cemu_latest
+
+    cd "${DIRECTORY}"
+    
+    [ -d "$latest" ] && [ -L "$latest" ] && ( 
+      cp "${latest}"/keys.txt ${newversion};
+      unlink "$latest"
+    )
+    
+    ln -s cemu_${CEMU_VERSION} cemu_latest
+    unzip -qq /tmp/cemu_hook.zip -d "${latest}"
     rm /tmp/cemu_hook.zip
     sed -e "s/#version 420/#version 450/" -i $EXEC ;
     chmod +x $EXEC
